@@ -1,0 +1,2602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoMed — TBM Clinical Decision Support</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal:       #028090;
+      --teal-dark:  #01606e;
+      --teal-light: #00A896;
+      --mint:       #02C39A;
+      --navy:       #0D2137;
+      --navy-mid:   #163352;
+      --bg:         #F0F4F8;
+      --card:       #FFFFFF;
+      --border:     #D1DDE8;
+      --text:       #1A2D3F;
+      --muted:      #6B8299;
+      --danger:     #D0392B;
+      --warn:       #E07B00;
+      --success:    #198754;
+      --radius:     12px;
+      --shadow:     0 2px 12px rgba(2,128,144,.10);
+      --shadow-lg:  0 8px 32px rgba(2,128,144,.14);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    a { color: var(--teal); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button { cursor: pointer; border: none; font: inherit; }
+    input, select, textarea { font: inherit; }
+
+    /* ── Utilities ────────────────────────────────────────── */
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-2 { gap: 8px; }
+    .gap-4 { gap: 16px; }
+    .gap-6 { gap: 24px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-4 { margin-top: 16px; }
+    .mt-6 { margin-top: 24px; }
+    .mb-1 { margin-bottom: 4px; }
+    .mb-2 { margin-bottom: 8px; }
+    .w-full { width: 100%; }
+    .text-sm { font-size: 13px; }
+    .text-xs { font-size: 11px; }
+    .text-muted { color: var(--muted); }
+    .bold { font-weight: 600; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* ── Login Screen ─────────────────────────────────────── */
+    #screen-login {
+      min-height: 100vh;
+      display: flex;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 50%, var(--teal-dark) 100%);
+    }
+    .login-left {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      color: #fff;
+    }
+    .login-left-inner { max-width: 460px; }
+    .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 48px; }
+    .login-logo-icon {
+      width: 62px; height: 62px;
+      background: linear-gradient(145deg, #0E2F45 0%, #0A5068 100%);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 22px rgba(10,42,60,.55);
+      border: 1.5px solid rgba(255,255,255,.1);
+      flex-shrink: 0;
+    }
+    .login-logo span {
+      font-size: 32px; font-weight: 900; letter-spacing: -1.5px;
+      color: #fff;
+    }
+    .login-logo span em { font-style: normal; color: #25B870; }
+    .login-tagline {
+      font-size: 52px; font-weight: 900; line-height: 1.1;
+      letter-spacing: -2px;
+      background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.6) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .login-tagline em {
+      font-style: normal;
+      background: linear-gradient(135deg, #25B870, #02C39A);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .login-sub { display: none; }
+    .login-badges { display: none; }
+    .badge {
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 13px;
+    }
+    .login-right {
+      width: 480px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 56px;
+    }
+    .login-form { width: 100%; }
+    .login-form h2 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+    .login-form p { color: var(--muted); margin-bottom: 32px; font-size: 14px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border-color .2s;
+      background: #FAFCFE;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--teal);
+      background: #fff;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      background: var(--teal);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      transition: background .2s;
+    }
+    .btn-primary:hover { background: var(--teal-dark); }
+    .login-hint { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+    .login-hint span { color: var(--teal); font-weight: 600; cursor: pointer; }
+
+    /* ── App Layout ───────────────────────────────────────── */
+    #app { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 240px;
+      background: var(--navy);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+    .sidebar-logo {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar-logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(145deg, #0E2F45 0%, #0A5068 100%);
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 10px rgba(10,42,60,.5);
+      border: 1px solid rgba(255,255,255,.1);
+      flex-shrink: 0;
+    }
+    .sidebar-logo span { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: #fff; }
+    .sidebar-logo span em { font-style: normal; color: #25B870; }
+    .sidebar-nav { padding: 16px 12px; flex: 1; }
+    .nav-section { margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,.35); padding: 8px 8px 4px; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: rgba(255,255,255,.7);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+      margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .nav-item.active { background: var(--teal); color: #fff; }
+    .nav-item .icon { font-size: 17px; width: 22px; text-align: center; }
+    .sidebar-user {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .avatar {
+      width: 36px; height: 36px;
+      background: var(--teal);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .user-info .name { font-size: 13px; font-weight: 600; }
+    .user-info .role { font-size: 11px; color: rgba(255,255,255,.45); }
+    .btn-logout {
+      margin-left: auto;
+      background: none;
+      color: rgba(255,255,255,.4);
+      font-size: 18px;
+      padding: 4px;
+    }
+    .btn-logout:hover { color: rgba(255,255,255,.8); }
+
+    .main-content {
+      margin-left: 240px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .topbar-title { font-size: 18px; font-weight: 700; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .btn-new {
+      background: var(--teal);
+      color: #fff;
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background .2s;
+    }
+    .btn-new:hover { background: var(--teal-dark); }
+    .page-body { padding: 28px 32px; }
+
+    /* ── Cards ────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .card-body { padding: 24px; }
+    .card-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title { font-size: 15px; font-weight: 700; }
+    .card-subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Dashboard ────────────────────────────────────────── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+    }
+    .stat-icon { font-size: 24px; margin-bottom: 10px; }
+    .stat-value { font-size: 32px; font-weight: 700; line-height: 1; }
+    .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .stat-delta { font-size: 12px; margin-top: 6px; }
+    .delta-up { color: var(--success); }
+    .delta-down { color: var(--danger); }
+
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 360px; gap: 20px; }
+
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .risk-definite { background: #FEE2E2; color: #991B1B; }
+    .risk-probable { background: #FEF3C7; color: #92400E; }
+    .risk-possible { background: #DBEAFE; color: #1E40AF; }
+    .risk-unlikely { background: #D1FAE5; color: #065F46; }
+
+    .case-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background .1s;
+    }
+    .case-row:last-child { border-bottom: none; }
+    .case-row:hover { background: #F7FAFB; margin: 0 -12px; padding-left: 12px; padding-right: 12px; border-radius: 6px; }
+    .case-avatar { width: 40px; height: 40px; background: #E8F4F6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .case-info .name { font-size: 14px; font-weight: 600; }
+    .case-info .meta { font-size: 12px; color: var(--muted); }
+    .case-score { margin-left: auto; text-align: right; }
+    .case-score .score { font-size: 20px; font-weight: 700; color: var(--teal); }
+    .case-score .pts { font-size: 11px; color: var(--muted); }
+
+    .quick-action {
+      background: linear-gradient(135deg, var(--teal) 0%, var(--teal-light) 100%);
+      border-radius: var(--radius);
+      padding: 28px;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    .quick-action h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .quick-action p { font-size: 13px; opacity: .8; margin-bottom: 20px; line-height: 1.6; }
+    .btn-white {
+      background: #fff;
+      color: var(--teal);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: box-shadow .2s;
+    }
+    .btn-white:hover { box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+
+    .insight-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .insight-item:last-child { border-bottom: none; }
+    .insight-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+    .dot-red { background: var(--danger); }
+    .dot-yellow { background: var(--warn); }
+    .dot-green { background: var(--success); }
+    .dot-blue { background: var(--teal); }
+    .insight-text { font-size: 13px; }
+    .insight-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── New Case / Wizard ────────────────────────────────── */
+    .wizard-header { margin-bottom: 24px; }
+    .wizard-steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 28px;
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .step:last-child { flex: 0; }
+    .step-circle {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      border: 2px solid var(--border);
+      background: #fff;
+      color: var(--muted);
+      transition: all .2s;
+    }
+    .step.done .step-circle { background: var(--mint); border-color: var(--mint); color: #fff; }
+    .step.active .step-circle { background: var(--teal); border-color: var(--teal); color: #fff; }
+    .step-label { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+    .step.active .step-label { color: var(--teal); }
+    .step.done .step-label { color: var(--text); }
+    .step-line { flex: 1; height: 2px; background: var(--border); margin: 0 8px; transition: background .2s; }
+    .step-line.done { background: var(--mint); }
+
+    .section-header {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--teal);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #E0F4F6;
+    }
+    .field-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; display: block; }
+    .field-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .input-field {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: #FAFCFE;
+      transition: border-color .2s;
+    }
+    .input-field:focus { outline: none; border-color: var(--teal); background: #fff; }
+    .select-field {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: #FAFCFE;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B8299' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+    .select-field:focus { outline: none; border-color: var(--teal); }
+
+    .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+    .checkbox-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .checkbox-item:hover { border-color: var(--teal-light); background: #F5FBFC; }
+    .checkbox-item.checked { border-color: var(--teal); background: #EBF7F9; }
+    .checkbox-item input[type=checkbox] { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; accent-color: var(--teal); }
+    .checkbox-item .item-label { font-size: 14px; font-weight: 500; }
+    .checkbox-item .item-pts { font-size: 12px; color: var(--teal); font-weight: 700; margin-top: 2px; }
+
+    .radio-group { display: flex; flex-direction: column; gap: 8px; }
+    .radio-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .radio-item:hover { border-color: var(--teal-light); background: #F5FBFC; }
+    .radio-item.selected { border-color: var(--teal); background: #EBF7F9; }
+    .radio-item input[type=radio] { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--teal); }
+
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .btn-back {
+      padding: 10px 22px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      background: #fff;
+      color: var(--text);
+      transition: border-color .2s;
+    }
+    .btn-back:hover { border-color: var(--teal); color: var(--teal); }
+    .btn-next {
+      padding: 10px 28px;
+      background: var(--teal);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background .2s;
+    }
+    .btn-next:hover { background: var(--teal-dark); }
+    .btn-analyze {
+      padding: 12px 32px;
+      background: linear-gradient(135deg, var(--teal), var(--mint));
+      color: #fff;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      transition: opacity .2s;
+    }
+    .btn-analyze:hover { opacity: .9; }
+
+    /* ── Results ──────────────────────────────────────────── */
+    .results-hero {
+      border-radius: var(--radius);
+      padding: 32px;
+      color: #fff;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .results-hero::before {
+      content: '';
+      position: absolute;
+      right: -40px; top: -40px;
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.07);
+    }
+    .results-hero-definite { background: linear-gradient(135deg, #991B1B, #DC2626); }
+    .results-hero-probable { background: linear-gradient(135deg, #92400E, #D97706); }
+    .results-hero-possible { background: linear-gradient(135deg, #1E3A8A, #3B82F6); }
+    .results-hero-unlikely { background: linear-gradient(135deg, #065F46, #10B981); }
+    .results-class { font-size: 13px; font-weight: 600; opacity: .8; text-transform: uppercase; letter-spacing: 1px; }
+    .results-label { font-size: 38px; font-weight: 800; margin: 4px 0; }
+    .results-score-row { display: flex; align-items: baseline; gap: 6px; margin: 8px 0; }
+    .results-score { font-size: 52px; font-weight: 800; line-height: 1; }
+    .results-score-max { font-size: 22px; opacity: .6; }
+    .results-desc { font-size: 14px; opacity: .85; line-height: 1.6; max-width: 560px; }
+
+    .score-block {
+      background: var(--card);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      text-align: center;
+    }
+    .score-block .val { font-size: 28px; font-weight: 700; color: var(--teal); }
+    .score-block .max { font-size: 13px; color: var(--muted); }
+    .score-block .lbl { font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+    .progress-bar-wrap { background: #E8EFF5; border-radius: 20px; height: 10px; overflow: hidden; margin-top: 8px; }
+    .progress-bar { height: 100%; border-radius: 20px; transition: width .6s ease; }
+
+    /* ── AI Assessment ──────────────────────────────── */
+    .ai-pulse-row { display:flex; gap:6px; align-items:center; }
+    .ai-pulse-row span {
+      display:inline-block; width:8px; height:8px; border-radius:50%;
+      background:var(--teal); opacity:.25;
+      animation: aipulse 1.4s ease-in-out infinite;
+    }
+    .ai-pulse-row span:nth-child(2) { animation-delay:.15s; }
+    .ai-pulse-row span:nth-child(3) { animation-delay:.30s; }
+    .ai-pulse-row span:nth-child(4) { animation-delay:.45s; }
+    .ai-pulse-row span:nth-child(5) { animation-delay:.60s; }
+    @keyframes aipulse {
+      0%,80%,100% { opacity:.2; transform:scale(.8); }
+      40%          { opacity:1;  transform:scale(1.2); background:#25B870; }
+    }
+    .ai-section { margin-bottom:18px; }
+    .ai-section-title {
+      font-size:11px; font-weight:700; letter-spacing:.7px; text-transform:uppercase;
+      color:var(--teal); margin-bottom:6px; padding-bottom:4px;
+      border-bottom:1.5px solid #e0f4f7;
+    }
+    .ai-section p { margin:0 0 6px; }
+    .ai-tag {
+      display:inline-block; font-size:11px; font-weight:600; padding:2px 9px;
+      border-radius:12px; margin-right:5px; margin-bottom:4px;
+    }
+    .ai-tag-red   { background:#fde8e8; color:#c0392b; }
+    .ai-tag-green { background:#e6f7ef; color:#1a7a4a; }
+    .ai-tag-blue  { background:#e8f1fd; color:#1e40af; }
+    .ai-tag-gray  { background:#f1f5f9; color:#475569; }
+    .ai-disclaimer {
+      margin-top:16px; padding:10px 14px; background:#f8fafc;
+      border-left:3px solid var(--teal); border-radius:0 6px 6px 0;
+      font-size:11.5px; color:var(--muted); line-height:1.5;
+    }
+
+    .finding-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .finding-row:last-child { border-bottom: none; }
+    .finding-check { color: var(--success); font-size: 16px; }
+    .finding-cross { color: var(--muted); font-size: 16px; }
+
+    .reco-card {
+      border-left: 4px solid;
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .reco-urgent { border-color: var(--danger); background: #FEF2F2; }
+    .reco-warn { border-color: var(--warn); background: #FFFBEB; }
+    .reco-info { border-color: var(--teal); background: #EBF7F9; }
+    .reco-title { font-weight: 700; margin-bottom: 2px; }
+
+    .btn-print {
+      padding: 9px 20px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-print:hover { border-color: var(--teal); color: var(--teal); }
+    .btn-new-case {
+      padding: 9px 20px;
+      background: var(--teal);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-new-case:hover { background: var(--teal-dark); }
+
+    /* ── History ──────────────────────────────────────────── */
+    .history-table { width: 100%; border-collapse: collapse; }
+    .history-table th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+      padding: 10px 16px;
+      background: #F7FAFB;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .history-table tr:hover td { background: #F7FAFB; cursor: pointer; }
+    .history-table tr:last-child td { border-bottom: none; }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 14px;
+      width: 280px;
+    }
+    .search-bar input { border: none; outline: none; width: 100%; background: transparent; }
+    .search-bar .icon { color: var(--muted); }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ── Alert ────────────────────────────────────────────── */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      display: flex;
+      gap: 8px;
+    }
+    .alert-warn { background: #FFFBEB; border: 1px solid #FCD34D; color: #92400E; }
+    .alert-info { background: #EBF7F9; border: 1px solid #A8D8E0; color: #0D4E5A; }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+    @media print {
+      .sidebar, .topbar, .form-actions, .no-print { display: none !important; }
+      .main-content { margin-left: 0; }
+      .page-body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════════════ -->
+<div id="screen-login">
+  <div class="login-left">
+    <div class="login-left-inner">
+      <div class="login-logo">
+        <div class="login-logo-icon">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:84%;height:84%;">
+            <!-- Bold brain silhouette with two lobes -->
+            <path d="M24 38
+              C13 38 7 30 7 23
+              C7 16 11 10 17 8.5
+              C19 8 21 7 24 9
+              C27 7 29 8 31 8.5
+              C37 10 41 16 41 23
+              C41 30 35 38 24 38Z"
+              fill="white"/>
+            <!-- Subtle hemisphere groove -->
+            <line x1="24" y1="9" x2="24" y2="36" stroke="#0B2638" stroke-width="1.8" opacity="0.15" stroke-linecap="round"/>
+            <!-- Neural pulse / EKG line — the heartbeat of diagnosis -->
+            <polyline
+              points="8,23 14,23 16,20 17.5,26 19,13 20.5,28 23,23 25,23 27,20 28.5,23 40,23"
+              stroke="#25B870" stroke-width="2.6"
+              stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Glowing dot at spike peak -->
+            <circle cx="19" cy="13" r="2.5" fill="#25B870"/>
+          </svg>
+        </div>
+        <span>Go<em>Med</em></span>
+      </div>
+      <div class="login-tagline"><em>Smarter</em> Decisions.<br><em>Faster</em> Diagnosis.</div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="login-form">
+      <h2>Welcome back</h2>
+      <p>Sign in to access GoMed clinical decision support</p>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="login-email" placeholder="dr.atif@hospital.org" value="dr.atif@hospital.org" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" value="password" />
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="login-role">
+          <option value="neurologist">Neurologist</option>
+          <option value="infectious">Infectious Disease Specialist</option>
+          <option value="resident">Neurology Resident</option>
+          <option value="paramedic">Paramedic / Nurse</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Sign In to GoMed</button>
+      <div class="login-hint">Demo: any credentials work &nbsp;·&nbsp; <span onclick="doLogin()">Quick access →</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════════════════ -->
+<div id="app" class="hidden">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:78%;height:78%;">
+          <path d="M32 8 A18 18 0 1 0 31 36 L28 33 A14 14 0 1 1 29 11 Z" fill="#0B2638"/>
+          <path d="M24 11 C21 11 19 11 17 12 C12 14 10 18 10 24 C10 30 14 35 20 35 L24 35 Z" fill="#1A7878"/>
+          <path d="M24 11 C27 11 29 11 31 12 C36 14 38 18 38 24 C38 30 34 35 28 35 L24 35 Z" fill="#22A05A"/>
+          <path d="M24 11 C21 11 19 11 17 12 C12 14 10 18 10 24 C10 30 14 35 20 35 L28 35 C34 35 38 30 38 24 C38 18 36 14 31 12 C29 11 27 11 24 11 Z" stroke="#0B2638" stroke-width="1.6"/>
+          <line x1="24" y1="11" x2="24" y2="35" stroke="#0B2638" stroke-width="1.5" opacity="0.55"/>
+          <line x1="23" y1="20" x2="15.5" y2="20" stroke="white" stroke-width="1.3"/>
+          <line x1="15.5" y1="20" x2="11.5" y2="15" stroke="white" stroke-width="1.3"/>
+          <line x1="15.5" y1="20" x2="11" y2="23" stroke="white" stroke-width="1.3"/>
+          <line x1="15.5" y1="20" x2="13" y2="28" stroke="white" stroke-width="1.3"/>
+          <line x1="23" y1="27" x2="17" y2="27" stroke="white" stroke-width="1.3"/>
+          <line x1="17" y1="27" x2="13.5" y2="31.5" stroke="white" stroke-width="1.3"/>
+          <circle cx="15.5" cy="20"   r="1.6" fill="white" opacity="0.65"/>
+          <circle cx="17"   cy="27"   r="1.6" fill="white" opacity="0.65"/>
+          <circle cx="11.5" cy="15"   r="2.3" fill="#1A7878" stroke="white" stroke-width="1.3"/>
+          <circle cx="11"   cy="23"   r="2.3" fill="#1A7878" stroke="white" stroke-width="1.3"/>
+          <circle cx="13"   cy="28"   r="2.3" fill="#1A7878" stroke="white" stroke-width="1.3"/>
+          <circle cx="13.5" cy="31.5" r="2.3" fill="#1A7878" stroke="white" stroke-width="1.3"/>
+          <rect x="30"   y="17.5" width="4.5"  height="15"  rx="1.5" fill="white"/>
+          <rect x="26.5" y="22.5" width="11.5" height="4.5" rx="1.5" fill="white"/>
+        </svg>
+      </div>
+      <span>Go<em>Med</em></span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-label">Main</div>
+        <div class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
+          <span class="icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" id="nav-new" onclick="navigate('new')">
+          <span class="icon">➕</span> New Diagnosis
+        </div>
+        <div class="nav-item" id="nav-history" onclick="navigate('history')">
+          <span class="icon">📋</span> Case History
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Reference</div>
+        <div class="nav-item" onclick="showCriteria()">
+          <span class="icon">📖</span> TBM Criteria
+        </div>
+        <div class="nav-item" onclick="alert('Coming soon in v2: drug dosing, treatment protocols')">
+          <span class="icon">💊</span> Treatment Guide
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="avatar" id="user-avatar">DA</div>
+      <div class="user-info">
+        <div class="name" id="user-name">Dr. Atif</div>
+        <div class="role" id="user-role">Neurologist</div>
+      </div>
+      <button onclick="openAPIKeyModal()" title="AI Settings" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:17px;cursor:pointer;padding:4px;" title="AI API Settings">⚙</button>
+      <button class="btn-logout" onclick="doLogout()" title="Sign out">⏻</button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <button class="btn-new" onclick="navigate('new')">+ New Diagnosis</button>
+      </div>
+    </div>
+    <div class="page-body">
+
+      <!-- ─── DASHBOARD ─────────────────────────────────── -->
+      <div id="view-dashboard">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon">🧫</div>
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-label">Total Cases</div>
+            <div class="stat-delta delta-up" id="stat-total-d"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🔴</div>
+            <div class="stat-value" id="stat-definite">0</div>
+            <div class="stat-label">Probable/Definite TBM</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🟡</div>
+            <div class="stat-value" id="stat-possible">0</div>
+            <div class="stat-label">Possible TBM</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div class="stat-value" id="stat-today">0</div>
+            <div class="stat-label">Today's Assessments</div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div>
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Recent Cases</div>
+                  <div class="card-subtitle">Latest diagnostic assessments</div>
+                </div>
+                <button onclick="navigate('history')" style="font-size:13px;color:var(--teal);background:none;font-weight:600;">View all →</button>
+              </div>
+              <div class="card-body" id="recent-cases">
+                <div class="empty-state">
+                  <div class="icon">🗂️</div>
+                  <h3>No cases yet</h3>
+                  <p>Start your first TBM diagnostic assessment</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="quick-action">
+              <h3>Run TBM Assessment</h3>
+              <p>Score a new suspected TBM case using the Uniform Case Definition criteria and get an instant diagnostic classification.</p>
+              <button class="btn-white" onclick="navigate('new')">▶ Start Assessment</button>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div class="card-title">Clinical Alerts</div></div>
+              <div class="card-body">
+                <div class="insight-item">
+                  <div class="insight-dot dot-blue"></div>
+                  <div>
+                    <div class="insight-text">TBM mortality rises sharply with treatment delays &gt;24h</div>
+                    <div class="insight-time">Clinical guideline reminder</div>
+                  </div>
+                </div>
+                <div class="insight-item">
+                  <div class="insight-dot dot-yellow"></div>
+                  <div>
+                    <div class="insight-text">HIV co-infection may suppress inflammatory CSF findings</div>
+                    <div class="insight-time">Diagnostic caveat</div>
+                  </div>
+                </div>
+                <div class="insight-item">
+                  <div class="insight-dot dot-green"></div>
+                  <div>
+                    <div class="insight-text">Empirical treatment warranted for Probable TBM cases</div>
+                    <div class="insight-time">Treatment guideline</div>
+                  </div>
+                </div>
+                <div class="insight-item">
+                  <div class="insight-dot dot-red"></div>
+                  <div>
+                    <div class="insight-text">CSF AFB smear sensitivity is only 10–40% — don't rule out</div>
+                    <div class="insight-time">Diagnostic caveat</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── NEW CASE WIZARD ───────────────────────────── -->
+      <div id="view-new" class="hidden">
+        <!-- Steps indicator -->
+        <div class="wizard-steps" id="wizard-steps">
+          <div class="step active" id="wstep-1">
+            <div class="step-circle">1</div>
+            <div class="step-label">Patient &amp; Clinical</div>
+          </div>
+          <div class="step-line" id="wline-1"></div>
+          <div class="step" id="wstep-2">
+            <div class="step-circle">2</div>
+            <div class="step-label">CSF Analysis</div>
+          </div>
+          <div class="step-line" id="wline-2"></div>
+          <div class="step" id="wstep-3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Neuroimaging</div>
+          </div>
+          <div class="step-line" id="wline-3"></div>
+          <div class="step" id="wstep-4">
+            <div class="step-circle">4</div>
+            <div class="step-label">TB Evidence</div>
+          </div>
+          <div class="step-line" id="wline-4"></div>
+          <div class="step" id="wstep-5">
+            <div class="step-circle">5</div>
+            <div class="step-label">Review</div>
+          </div>
+        </div>
+
+        <!-- Step 1: Patient & Clinical -->
+        <div id="step1" class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Patient Details &amp; Clinical Features</div>
+              <div class="card-subtitle">Demographic information and clinical presentation</div>
+            </div>
+            <div style="font-size:12px;background:#EBF7F9;color:var(--teal);padding:4px 12px;border-radius:20px;font-weight:600;">Step 1 of 5</div>
+          </div>
+          <div class="card-body">
+            <div class="section-header">Patient Demographics</div>
+            <div class="grid-3" style="margin-bottom:20px;">
+              <div>
+                <label class="field-label">Patient Name / ID</label>
+                <input class="input-field" type="text" id="f-name" placeholder="e.g. Patient A or ID-001" />
+              </div>
+              <div>
+                <label class="field-label">Age (years)</label>
+                <input class="input-field" type="number" id="f-age" placeholder="e.g. 35" min="0" max="120" />
+              </div>
+              <div>
+                <label class="field-label">Sex</label>
+                <select class="select-field" id="f-sex">
+                  <option value="">Select</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid-2" style="margin-bottom:24px;">
+              <div>
+                <label class="field-label">HIV Status</label>
+                <select class="select-field" id="f-hiv">
+                  <option value="unknown">Unknown</option>
+                  <option value="negative">Negative</option>
+                  <option value="positive">Positive</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">Known TB Contact or History</label>
+                <select class="select-field" id="f-tb-contact">
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="section-header">Clinical Criteria <span style="font-weight:400;color:var(--muted);font-size:11px;text-transform:none;">(select all that apply)</span></div>
+
+            <div style="margin-bottom:16px;">
+              <label class="field-label">Symptom Duration</label>
+              <div class="radio-group" id="rg-duration">
+                <label class="radio-item" onclick="selectRadio('rg-duration',this,'dur-gt5',4)">
+                  <input type="radio" name="duration" id="dur-gt5" value="4" />
+                  <div>
+                    <div class="item-label">Symptoms present for &gt;5 days</div>
+                  </div>
+                </label>
+                <label class="radio-item" onclick="selectRadio('rg-duration',this,'dur-lte5',0)">
+                  <input type="radio" name="duration" id="dur-lte5" value="0" />
+                  <div>
+                    <div class="item-label">Symptoms present for ≤5 days</div>
+                  </div>
+                </label>
+              </div>
+              <div class="field-hint">Subacute/chronic onset is a hallmark of TBM</div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label class="field-label">Systemic Features <span class="text-xs text-muted">(any of the following)</span></label>
+              <div class="checkbox-group">
+                <label class="checkbox-item" onclick="toggleCheck(this)">
+                  <input type="checkbox" name="systemic" value="2" data-pts="2" />
+                  <div>
+                    <div class="item-label">Weight loss / night sweats / persistent cough &gt;2 weeks</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label class="field-label">Neurological Features</label>
+              <div class="checkbox-group">
+                <label class="checkbox-item" onclick="toggleCheck(this)">
+                  <input type="checkbox" name="neuro" value="1" data-pts="1" />
+                  <div>
+                    <div class="item-label">Altered consciousness (GCS &lt;15, confusion, agitation)</div>
+                  </div>
+                </label>
+                <label class="checkbox-item" onclick="toggleCheck(this)">
+                  <input type="checkbox" name="neuro" value="1" data-pts="1" />
+                  <div>
+                    <div class="item-label">Cranial nerve palsy (III, IV, VI, VII)</div>
+                  </div>
+                </label>
+                <label class="checkbox-item" onclick="toggleCheck(this)">
+                  <input type="checkbox" name="neuro" value="1" data-pts="1" />
+                  <div>
+                    <div class="item-label">Focal neurological deficit (hemiparesis, aphasia — not CN palsy)</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+
+            <div class="form-actions">
+              <div style="font-size:13px;color:var(--muted);">Complete all fields for accurate assessment</div>
+              <button class="btn-next" onclick="goToStep(2)">Next: CSF Analysis →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: CSF -->
+        <div id="step2" class="card hidden">
+          <div class="card-header">
+            <div>
+              <div class="card-title">CSF Analysis</div>
+              <div class="card-subtitle">Cerebrospinal fluid findings</div>
+            </div>
+            <div style="font-size:12px;background:#EBF7F9;color:var(--teal);padding:4px 12px;border-radius:20px;font-weight:600;">Step 2 of 5</div>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-warn">
+              ⚠️ Lumbar puncture may be deferred if raised ICP is suspected. Enter N/A findings if LP not performed — this will be noted in the report.
+            </div>
+            <div class="section-header">LP Performed?</div>
+            <div style="margin-bottom:20px;">
+              <div class="radio-group" id="rg-lp">
+                <label class="radio-item" onclick="selectRadio('rg-lp',this,'lp-yes','yes'); toggleLPFields(true)">
+                  <input type="radio" name="lp" id="lp-yes" value="yes" />
+                  <div class="item-label">Yes — LP performed, results available</div>
+                </label>
+                <label class="radio-item" onclick="selectRadio('rg-lp',this,'lp-no','no'); toggleLPFields(false)">
+                  <input type="radio" name="lp" id="lp-no" value="no" />
+                  <div class="item-label">No — LP not performed or results pending</div>
+                </label>
+              </div>
+            </div>
+
+            <div id="lp-fields" class="hidden">
+              <div class="section-header">CSF Criteria</div>
+
+              <div class="grid-2" style="margin-bottom:20px;">
+                <div>
+                  <label class="field-label">CSF Appearance</label>
+                  <select class="select-field" id="f-csf-appear" onchange="updateCSFAppearance()">
+                    <option value="">Select appearance</option>
+                    <option value="clear">Clear / slightly turbid</option>
+                    <option value="turbid">Turbid / xanthochromic / bloody</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field-label">Total WBC Count (cells/µL)</label>
+                  <input class="input-field" type="number" id="f-csf-wbc" placeholder="e.g. 120" min="0" onchange="updateCSFWBC()" />
+                  <div class="field-hint">Enter total WBC count (cells/µL)</div>
+                </div>
+              </div>
+
+              <div class="grid-2" style="margin-bottom:20px;">
+                <div>
+                  <label class="field-label">Lymphocyte Predominance</label>
+                  <select class="select-field" id="f-csf-lymph" onchange="updateCSFLymph()">
+                    <option value="">Select</option>
+                    <option value="yes">Lymphocytes &gt;50%</option>
+                    <option value="no">Neutrophils predominant</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field-label">CSF Protein (g/L)</label>
+                  <input class="input-field" type="number" id="f-csf-protein" placeholder="e.g. 1.5" step="0.1" min="0" onchange="updateCSFProtein()" />
+                  <div class="field-hint">Enter protein level in g/L</div>
+                </div>
+              </div>
+
+              <div class="grid-2" style="margin-bottom:20px;">
+                <div>
+                  <label class="field-label">CSF/Serum Glucose Ratio</label>
+                  <input class="input-field" type="number" id="f-csf-glucose-ratio" placeholder="e.g. 0.3" step="0.01" min="0" max="2" onchange="updateCSFGlucose()" />
+                  <div class="field-hint">CSF glucose ÷ serum glucose (normal &gt;0.5)</div>
+                </div>
+                <div>
+                  <label class="field-label">OR Absolute CSF Glucose (mmol/L)</label>
+                  <input class="input-field" type="number" id="f-csf-glucose-abs" placeholder="e.g. 1.8" step="0.1" min="0" onchange="updateCSFGlucose()" />
+                </div>
+              </div>
+
+              <div style="margin-bottom:20px;">
+                <label class="field-label">Microbiological Results</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-item" onclick="toggleCheck(this)">
+                    <input type="checkbox" name="micro" value="afb" data-label="CSF AFB smear positive" />
+                    <div><div class="item-label">CSF AFB smear positive</div></div>
+                  </label>
+                  <label class="checkbox-item" onclick="toggleCheck(this)">
+                    <input type="checkbox" name="micro" value="culture" data-label="CSF Mtb culture positive" />
+                    <div><div class="item-label">CSF Mtb culture positive</div></div>
+                  </label>
+                  <label class="checkbox-item" onclick="toggleCheck(this)">
+                    <input type="checkbox" name="micro" value="pcr" data-label="CSF Mtb PCR positive" />
+                    <div><div class="item-label">CSF Mtb PCR / GeneXpert positive</div></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-back" onclick="goToStep(1)">← Back</button>
+              <button class="btn-next" onclick="goToStep(3)">Next: Neuroimaging →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Neuroimaging -->
+        <div id="step3" class="card hidden">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Cerebral Neuroimaging</div>
+              <div class="card-subtitle">CT/MRI brain findings</div>
+            </div>
+            <div style="font-size:12px;background:#EBF7F9;color:var(--teal);padding:4px 12px;border-radius:20px;font-weight:600;">Step 3 of 5</div>
+          </div>
+          <div class="card-body">
+            <div style="margin-bottom:20px;">
+              <label class="field-label">Imaging Available?</label>
+              <div class="radio-group" id="rg-imaging">
+                <label class="radio-item" onclick="selectRadio('rg-imaging',this,'img-yes','yes'); showImagingFields(true)">
+                  <input type="radio" name="imaging" id="img-yes" value="yes" />
+                  <div class="item-label">Yes — CT/MRI performed</div>
+                </label>
+                <label class="radio-item" onclick="selectRadio('rg-imaging',this,'img-no','no'); showImagingFields(false)">
+                  <input type="radio" name="imaging" id="img-no" value="no" />
+                  <div class="item-label">No — imaging not available (score calculated without imaging)</div>
+                </label>
+              </div>
+            </div>
+
+            <div id="imaging-fields" class="hidden">
+              <div class="section-header">Imaging Criteria</div>
+              <div class="checkbox-group">
+                <label class="checkbox-item" onclick="toggleCheck(this)">
+                  <input type="checkbox" name="imaging-findings" data-pts="1" />
+                  <div>
+                    <div class="item-label">Hydrocephalus</div>
+                  </div>
+                </label>
+                <label class="checkbox-item" onclick="toggleCheck(this)">
+                  <input type="checkbox" name="imaging-findings" data-pts="2" />
+                  <div>
+                    <div class="item-label">Basal meningeal enhancement (post-contrast)</div>
+                  </div>
+                </label>
+                <label class="checkbox-item" onclick="toggleCheck(this)">
+                  <input type="checkbox" name="imaging-findings" data-pts="2" />
+                  <div>
+                    <div class="item-label">Tuberculoma (ring-enhancing lesion)</div>
+                  </div>
+                </label>
+                <label class="checkbox-item" onclick="toggleCheck(this)">
+                  <input type="checkbox" name="imaging-findings" data-pts="1" />
+                  <div>
+                    <div class="item-label">Infarct (cerebral infarction)</div>
+                  </div>
+                </label>
+                <label class="checkbox-item" onclick="toggleCheck(this)">
+                  <input type="checkbox" name="imaging-findings" data-pts="2" />
+                  <div>
+                    <div class="item-label">Pre-contrast basal hyperdensity</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-back" onclick="goToStep(2)">← Back</button>
+              <button class="btn-next" onclick="goToStep(4)">Next: TB Evidence →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: TB Evidence -->
+        <div id="step4" class="card hidden">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Evidence of TB Elsewhere</div>
+              <div class="card-subtitle">Systemic and extra-CNS tuberculosis evidence</div>
+            </div>
+            <div style="font-size:12px;background:#EBF7F9;color:var(--teal);padding:4px 12px;border-radius:20px;font-weight:600;">Step 4 of 5</div>
+          </div>
+          <div class="card-body">
+            <div class="section-header">Chest X-Ray / Thoracic CT</div>
+            <div class="radio-group" id="rg-cxr" style="margin-bottom:20px;">
+              <label class="radio-item" onclick="selectRadio('rg-cxr',this,'cxr-miliary',4)">
+                <input type="radio" name="cxr" id="cxr-miliary" value="4" />
+                <div>
+                  <div class="item-label">Miliary pattern on CXR</div>
+                </div>
+              </label>
+              <label class="radio-item" onclick="selectRadio('rg-cxr',this,'cxr-other',2)">
+                <input type="radio" name="cxr" id="cxr-other" value="2" />
+                <div>
+                  <div class="item-label">Hilar lymphadenopathy or pulmonary infiltrates</div>
+                </div>
+              </label>
+              <label class="radio-item" onclick="selectRadio('rg-cxr',this,'cxr-ct',2)">
+                <input type="radio" name="cxr" id="cxr-ct" value="2" />
+                <div>
+                  <div class="item-label">CT thorax: lymphadenopathy or infiltrates (no CXR miliary)</div>
+                </div>
+              </label>
+              <label class="radio-item" onclick="selectRadio('rg-cxr',this,'cxr-normal',0)">
+                <input type="radio" name="cxr" id="cxr-normal" value="0" />
+                <div>
+                  <div class="item-label">Normal / not performed</div>
+                </div>
+              </label>
+            </div>
+
+            <div class="section-header">Extra-CNS Microbiological Evidence</div>
+            <div class="checkbox-group" style="margin-bottom:20px;">
+              <label class="checkbox-item" onclick="toggleCheck(this)">
+                <input type="checkbox" name="extracns" data-pts="2" />
+                <div>
+                  <div class="item-label">AFB smear or Mtb culture positive from non-CNS site (sputum, urine, lymph node, etc.)</div>
+                </div>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheck(this)">
+                <input type="checkbox" name="extracns" data-pts="2" />
+                <div>
+                  <div class="item-label">Positive IGRA (interferon gamma release assay) or TST ≥10mm</div>
+                </div>
+              </label>
+            </div>
+
+            <div class="section-header">Alternative Diagnoses Excluded?</div>
+            <div class="radio-group" id="rg-altdx" style="margin-bottom:20px;">
+              <label class="radio-item" onclick="selectRadio('rg-altdx',this,'alt-yes','yes')">
+                <input type="radio" name="altdx" id="alt-yes" value="yes" />
+                <div class="item-label">Yes — alternative diagnosis has been reasonably excluded</div>
+              </label>
+              <label class="radio-item" onclick="selectRadio('rg-altdx',this,'alt-partial','partial')">
+                <input type="radio" name="altdx" id="alt-partial" value="partial" />
+                <div class="item-label">Partial — some workup ongoing (cryptococcal, bacterial, viral meningitis)</div>
+              </label>
+              <label class="radio-item" onclick="selectRadio('rg-altdx',this,'alt-no','no')">
+                <input type="radio" name="altdx" id="alt-no" value="no" />
+                <div class="item-label">No — alternative diagnosis still being considered</div>
+              </label>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label class="field-label">Clinical Notes (optional)</label>
+              <textarea class="input-field" id="f-notes" rows="3" placeholder="Any additional clinical context, differentials considered, treatment already initiated..."></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-back" onclick="goToStep(3)">← Back</button>
+              <button class="btn-next" onclick="goToStep(5)">Next: Review →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: Review -->
+        <div id="step5" class="card hidden">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Review &amp; Analyze</div>
+              <div class="card-subtitle">Confirm all inputs before generating the diagnostic report</div>
+            </div>
+            <div style="font-size:12px;background:#EBF7F9;color:var(--teal);padding:4px 12px;border-radius:20px;font-weight:600;">Step 5 of 5</div>
+          </div>
+          <div class="card-body">
+            <div id="review-content"></div>
+            <div class="form-actions">
+              <button class="btn-back" onclick="goToStep(4)">← Back</button>
+              <button class="btn-analyze" onclick="runAnalysis()">🔬 Generate Diagnostic Report</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── RESULTS ────────────────────────────────────── -->
+      <div id="view-results" class="hidden">
+        <div id="results-hero" class="results-hero">
+          <div class="results-class" id="r-class-label">TBM CLASSIFICATION</div>
+          <div class="results-label" id="r-label">—</div>
+          <div class="results-desc" id="r-desc">—</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Positive Findings</div></div>
+            <div class="card-body" id="r-findings"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Clinical Recommendations</div></div>
+            <div class="card-body" id="r-recommendations"></div>
+          </div>
+        </div>
+
+        <!-- ── AI Assessment Card ─────────────────────────── -->
+        <div class="card" id="ai-card" style="margin-bottom:20px;border:1.5px solid #e0eaf4;">
+          <div class="card-header" style="background:linear-gradient(135deg,#0B2638 0%,#0A5068 100%);border-radius:12px 12px 0 0;padding:14px 20px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:32px;height:32px;background:rgba(37,184,112,.18);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10" stroke="#25B870" stroke-width="1.8"/><path d="M8 12h2l1-3 2 6 1-3h2" stroke="#25B870" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:#fff;">AI Neurologist Assessment</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.55);">GPT-4o — analysing case in background</div>
+              </div>
+            </div>
+            <div id="ai-status-badge" style="font-size:11px;background:rgba(37,184,112,.15);color:#25B870;padding:4px 12px;border-radius:20px;font-weight:600;border:1px solid rgba(37,184,112,.3);">● Analysing…</div>
+          </div>
+          <div class="card-body" id="ai-body">
+            <!-- Loading state -->
+            <div id="ai-loading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 0;gap:14px;">
+              <div class="ai-pulse-row">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <div style="font-size:13px;color:var(--muted);">GPT-4o is reviewing the clinical data…</div>
+            </div>
+            <!-- Result -->
+            <div id="ai-result" style="display:none;font-size:13.5px;line-height:1.75;color:#1a2d3f;"></div>
+            <!-- Error -->
+            <div id="ai-error" style="display:none;">
+              <div style="background:#fff5f5;border:1px solid #fcc;border-radius:8px;padding:14px 16px;font-size:13px;color:#c0392b;">
+                <strong>AI assessment unavailable.</strong> <span id="ai-error-msg"></span><br>
+                <span style="color:var(--muted);font-size:12px;">Add your OpenAI API key in <button onclick="openAPIKeyModal()" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:12px;text-decoration:underline;padding:0;">Settings</button> to enable this feature.</span>
+              </div>
+            </div>
+            <!-- No key -->
+            <div id="ai-nokey" style="display:none;text-align:center;padding:24px 0;">
+              <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Enter your OpenAI API key to unlock AI-powered neurologist assessment.</div>
+              <button onclick="openAPIKeyModal()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:13px;font-weight:600;">⚙ Add API Key</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-4 no-print" style="margin-bottom:8px;">
+          <button class="btn-new-case" onclick="generatePDF()" style="background:var(--navy);">⬇ Download PDF</button>
+          <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
+          <button class="btn-new-case" onclick="startNewCase()">+ New Case</button>
+          <button class="btn-back" onclick="navigate('history')" style="margin-left:auto;">View Case History</button>
+        </div>
+
+        <div class="alert alert-warn no-print">
+          ⚠️ <strong>Clinical Disclaimer:</strong> GoMed provides decision support based on the Uniform TBM Case Definition (2010). It does not replace clinical judgment. All diagnoses and treatment decisions must be made by a qualified clinician.
+        </div>
+      </div>
+
+      <!-- ─── HISTORY ────────────────────────────────────── -->
+      <div id="view-history" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Case History</div>
+              <div class="card-subtitle">All diagnostic assessments</div>
+            </div>
+            <div class="search-bar">
+              <span class="icon">🔍</span>
+              <input type="text" placeholder="Search patients..." id="history-search" oninput="filterHistory()" />
+            </div>
+          </div>
+          <div id="history-content">
+            <div class="empty-state">
+              <div class="icon">📋</div>
+              <h3>No cases yet</h3>
+              <p>Complete your first assessment to see it here</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- page-body -->
+  </div><!-- main-content -->
+</div><!-- app -->
+
+<!-- API Key Modal -->
+<div id="apikey-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;width:90%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <div style="padding:22px 26px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:17px;font-weight:700;color:var(--navy);">⚙ OpenAI API Key</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Required for AI Neurologist Assessment</div>
+      </div>
+      <button onclick="closeAPIKeyModal()" style="font-size:20px;background:none;border:none;color:var(--muted);cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:22px 26px;">
+      <div style="background:#f0f9ff;border:1px solid #bae0fb;border-radius:8px;padding:12px 14px;font-size:12.5px;color:#0369a1;margin-bottom:18px;line-height:1.6;">
+        🔒 Your API key is stored only in your browser's local storage and is <strong>never sent anywhere</strong> except directly to OpenAI's servers.
+      </div>
+      <label style="font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:6px;">API Key</label>
+      <input type="password" id="apikey-input" placeholder="sk-proj-..." style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;outline:none;"/>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:6px;">Get your key at <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--teal);">platform.openai.com/api-keys</a></div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="saveAPIKey()" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;">Save Key</button>
+        <button onclick="clearAPIKey()" style="padding:10px 16px;background:#fff;border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--muted);cursor:pointer;">Clear</button>
+      </div>
+      <div id="apikey-status" style="margin-top:10px;font-size:12.5px;text-align:center;min-height:18px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TBM Criteria Modal -->
+<div id="criteria-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;max-width:640px;width:90%;max-height:85vh;overflow-y:auto;">
+    <div style="padding:24px 28px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:18px;font-weight:700;">Uniform TBM Case Definition (2010)</div>
+      <button onclick="document.getElementById('criteria-modal').classList.add('hidden')" style="font-size:20px;background:none;color:var(--muted);">✕</button>
+    </div>
+    <div style="padding:24px 28px;font-size:14px;line-height:1.7;">
+      <p style="margin-bottom:16px;color:var(--muted);">Marais et al. (2010) — developed to standardize TBM research and improve diagnostic reproducibility globally.</p>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#F7FAFB;">
+            <th style="padding:8px 12px;text-align:left;border:1px solid var(--border);">Category</th>
+            <th style="padding:8px 12px;text-align:center;border:1px solid var(--border);">Max Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:8px 12px;border:1px solid var(--border);">Clinical criteria (duration, systemic, neuro)</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">6</td></tr>
+          <tr><td style="padding:8px 12px;border:1px solid var(--border);">CSF criteria</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">4</td></tr>
+          <tr><td style="padding:8px 12px;border:1px solid var(--border);">Cerebral imaging</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">6</td></tr>
+          <tr><td style="padding:8px 12px;border:1px solid var(--border);">Evidence of TB elsewhere</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">4</td></tr>
+          <tr style="font-weight:700;"><td style="padding:8px 12px;border:1px solid var(--border);">Total</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">20</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:20px;">
+        <strong>Classification (without imaging):</strong>
+        <ul style="margin:8px 0 16px 20px;">
+          <li><span style="color:var(--danger);font-weight:600;">Definite TBM</span>: Positive CSF AFB smear, culture, or PCR</li>
+          <li><span style="color:var(--warn);font-weight:600;">Probable TBM</span>: Score ≥10, no alternative diagnosis</li>
+          <li><span style="color:#1E40AF;font-weight:600;">Possible TBM</span>: Score 6–9, no alternative diagnosis</li>
+          <li><span style="color:var(--success);font-weight:600;">Unlikely TBM</span>: Score &lt;6</li>
+        </ul>
+        <strong>Classification (with imaging):</strong>
+        <ul style="margin:8px 0 0 20px;">
+          <li><span style="color:var(--danger);font-weight:600;">Definite TBM</span>: Positive CSF AFB smear, culture, or PCR</li>
+          <li><span style="color:var(--warn);font-weight:600;">Probable TBM</span>: Score ≥12, no alternative diagnosis</li>
+          <li><span style="color:#1E40AF;font-weight:600;">Possible TBM</span>: Score 6–11, no alternative diagnosis</li>
+          <li><span style="color:var(--success);font-weight:600;">Unlikely TBM</span>: Score &lt;6</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+let currentUser = null;
+let currentStep = 1;
+let cases = JSON.parse(localStorage.getItem('gomed_cases') || '[]');
+
+// Scoring state
+let scores = {
+  duration: 0,
+  systemic: 0,
+  neuro: 0,
+  csf: { appear: 0, wbc: 0, lymph: 0, protein: 0, glucose: 0 },
+  micro: [],
+  imaging: { available: false, findings: 0 },
+  cxr: 0,
+  extracns: 0,
+  altdx: 'unknown',
+};
+
+// ═══════════════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════════════
+function doLogin() {
+  const email = document.getElementById('login-email').value || 'doctor@gomed.ai';
+  const role = document.getElementById('login-role').value;
+  const name = email.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase());
+  currentUser = { email, role, name };
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-role').textContent = role.charAt(0).toUpperCase() + role.slice(1);
+  document.getElementById('user-avatar').textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('screen-login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  navigate('dashboard');
+  updateDashboard();
+}
+
+function doLogout() {
+  document.getElementById('screen-login').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function navigate(view) {
+  ['dashboard','new','results','history'].forEach(v => {
+    document.getElementById('view-' + v).classList.add('hidden');
+  });
+  document.getElementById('view-' + view).classList.remove('hidden');
+
+  ['dashboard','new','history'].forEach(v => {
+    document.getElementById('nav-' + v)?.classList.remove('active');
+  });
+  if (document.getElementById('nav-' + view)) {
+    document.getElementById('nav-' + view).classList.add('active');
+  }
+
+  const titles = { dashboard: 'Dashboard', new: 'New TBM Assessment', results: 'Diagnostic Report', history: 'Case History' };
+  document.getElementById('topbar-title').textContent = titles[view] || '';
+
+  if (view === 'new') resetWizard();
+  if (view === 'dashboard') updateDashboard();
+  if (view === 'history') renderHistory();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WIZARD
+// ═══════════════════════════════════════════════════════════
+function resetWizard() {
+  currentStep = 1;
+  scores = {
+    duration: 0, systemic: 0, neuro: 0,
+    csf: { appear: 0, wbc: 0, lymph: 0, protein: 0, glucose: 0 },
+    micro: [],
+    imaging: { available: false, findings: 0 },
+    cxr: 0, extracns: 0, altdx: 'unknown',
+  };
+  for (let i = 1; i <= 5; i++) {
+    document.getElementById('step' + i).classList.add('hidden');
+  }
+  document.getElementById('step1').classList.remove('hidden');
+  updateStepUI(1);
+  // Reset all inputs
+  document.querySelectorAll('#view-new input, #view-new select, #view-new textarea').forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+    else el.value = '';
+  });
+  document.querySelectorAll('.checkbox-item, .radio-item').forEach(el => el.classList.remove('checked','selected'));
+  document.getElementById('lp-fields').classList.add('hidden');
+  document.getElementById('imaging-fields').classList.add('hidden');
+}
+
+function goToStep(n) {
+  document.getElementById('step' + currentStep).classList.add('hidden');
+  document.getElementById('step' + n).classList.remove('hidden');
+  currentStep = n;
+  updateStepUI(n);
+  if (n === 5) buildReview();
+  window.scrollTo(0, 0);
+}
+
+function updateStepUI(n) {
+  for (let i = 1; i <= 5; i++) {
+    const step = document.getElementById('wstep-' + i);
+    step.classList.remove('active','done');
+    if (i < n) step.classList.add('done');
+    if (i === n) step.classList.add('active');
+    if (i < 5) {
+      const line = document.getElementById('wline-' + i);
+      line.classList.toggle('done', i < n);
+    }
+  }
+}
+
+function selectRadio(groupId, el, inputId, value) {
+  document.querySelectorAll('#' + groupId + ' .radio-item').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById(inputId).checked = true;
+
+  // Update scoring state
+  if (groupId === 'rg-duration') scores.duration = Number(value);
+  if (groupId === 'rg-cxr') scores.cxr = Number(value);
+}
+
+function toggleCheck(el) {
+  // Use setTimeout so the browser's native checkbox toggle fires first,
+  // then we sync the visual state to whatever the checkbox actually is.
+  setTimeout(() => {
+    const cb = el.querySelector('input[type=checkbox]');
+    el.classList.toggle('checked', cb.checked);
+  }, 0);
+}
+
+function toggleLPFields(show) {
+  document.getElementById('lp-fields').classList.toggle('hidden', !show);
+}
+
+function showImagingFields(show) {
+  document.getElementById('imaging-fields').classList.toggle('hidden', !show);
+  scores.imaging.available = show;
+}
+
+function updateCSFAppearance() {
+  const val = document.getElementById('f-csf-appear').value;
+  scores.csf.appear = val === 'clear' ? 1 : 0;
+}
+function updateCSFWBC() {
+  const wbc = parseFloat(document.getElementById('f-csf-wbc').value);
+  scores.csf.wbc = (wbc >= 10 && wbc <= 500) ? 1 : 0;
+}
+function updateCSFLymph() {
+  const val = document.getElementById('f-csf-lymph').value;
+  scores.csf.lymph = val === 'yes' ? 1 : 0;
+}
+function updateCSFProtein() {
+  const p = parseFloat(document.getElementById('f-csf-protein').value);
+  scores.csf.protein = p > 1.0 ? 1 : 0;
+}
+function updateCSFGlucose() {
+  const ratio = parseFloat(document.getElementById('f-csf-glucose-ratio').value);
+  const abs = parseFloat(document.getElementById('f-csf-glucose-abs').value);
+  scores.csf.glucose = (ratio < 0.5 || abs < 2.2) ? 1 : 0;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  REVIEW BUILDER
+// ═══════════════════════════════════════════════════════════
+function buildReview() {
+  const name = document.getElementById('f-name').value || 'Unnamed Patient';
+  const age = document.getElementById('f-age').value;
+  const sex = document.getElementById('f-sex').value;
+  const hiv = document.getElementById('f-hiv').value;
+
+  const dur = document.querySelector('input[name="duration"]:checked');
+  const lp = document.querySelector('input[name="lp"]:checked');
+  const img = document.querySelector('input[name="imaging"]:checked');
+  const cxr = document.querySelector('input[name="cxr"]:checked');
+  const alt = document.querySelector('input[name="altdx"]:checked');
+
+  const systemicChecked = [...document.querySelectorAll('input[name="systemic"]:checked')].length;
+  const neuroCount = [...document.querySelectorAll('input[name="neuro"]:checked')].length;
+  const microCount = [...document.querySelectorAll('input[name="micro"]:checked')].length;
+  const imgCount = [...document.querySelectorAll('input[name="imaging-findings"]:checked')].length;
+  const extCount = [...document.querySelectorAll('input[name="extracns"]:checked')].length;
+
+  document.getElementById('review-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <div class="section-header">Patient</div>
+        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+          <tr><td style="padding:6px 0;color:var(--muted);width:140px;">Name/ID</td><td style="font-weight:600;">${name}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--muted);">Age / Sex</td><td style="font-weight:600;">${age || '—'} yr / ${sex || '—'}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--muted);">HIV Status</td><td style="font-weight:600;">${hiv}</td></tr>
+        </table>
+      </div>
+      <div>
+        <div class="section-header">Clinical Summary</div>
+        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+          <tr><td style="padding:6px 0;color:var(--muted);">Symptom Duration</td><td style="font-weight:600;">${dur ? (dur.value > 0 ? '>5 days' : '≤5 days') : 'Not selected'}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--muted);">Systemic Features</td><td style="font-weight:600;">${systemicChecked ? 'Present' : 'Absent'}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--muted);">Neuro Features</td><td style="font-weight:600;">${neuroCount} selected</td></tr>
+          <tr><td style="padding:6px 0;color:var(--muted);">LP / CSF</td><td style="font-weight:600;">${lp ? lp.value : '—'}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--muted);">Microbiological</td><td style="font-weight:600;">${microCount} positive</td></tr>
+          <tr><td style="padding:6px 0;color:var(--muted);">Imaging</td><td style="font-weight:600;">${img ? img.value : '—'} ${imgCount ? '(' + imgCount + ' findings)' : ''}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--muted);">CXR Finding</td><td style="font-weight:600;">${cxr ? cxr.nextElementSibling?.querySelector('.item-label')?.textContent : '—'}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--muted);">Alt Dx Excluded</td><td style="font-weight:600;">${alt ? alt.value : '—'}</td></tr>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCORING ENGINE
+// ═══════════════════════════════════════════════════════════
+function runAnalysis() {
+  try {
+    navigate('results');
+    const result = computeScore();
+    renderResults(result);
+    try { saveCase(result); } catch(e) {}
+    updateDashboard();
+    // Launch AI assessment in background (non-blocking)
+    triggerAIAssessment(result);
+  } catch(e) {
+    console.error('GoMed report error:', e);
+    document.getElementById('r-label').textContent = 'Error generating report';
+    document.getElementById('r-desc').textContent = e.message;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  API KEY MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+function getAPIKey() {
+  try { return localStorage.getItem('gomed_openai_key') || ''; } catch(e) { return ''; }
+}
+function openAPIKeyModal() {
+  const modal = document.getElementById('apikey-modal');
+  modal.style.display = 'flex';
+  const k = getAPIKey();
+  document.getElementById('apikey-input').value = k ? '••••••••' + k.slice(-4) : '';
+  document.getElementById('apikey-status').textContent = k ? '✅ Key saved' : '';
+}
+function closeAPIKeyModal() {
+  document.getElementById('apikey-modal').style.display = 'none';
+}
+function saveAPIKey() {
+  const val = document.getElementById('apikey-input').value.trim();
+  if (!val || val.startsWith('••••')) {
+    document.getElementById('apikey-status').textContent = '⚠ Enter a valid key starting with sk-';
+    return;
+  }
+  try {
+    localStorage.setItem('gomed_openai_key', val);
+    document.getElementById('apikey-status').textContent = '✅ Key saved successfully';
+    setTimeout(closeAPIKeyModal, 1000);
+  } catch(e) {
+    document.getElementById('apikey-status').textContent = '❌ Could not save: ' + e.message;
+  }
+}
+function clearAPIKey() {
+  try { localStorage.removeItem('gomed_openai_key'); } catch(e) {}
+  document.getElementById('apikey-input').value = '';
+  document.getElementById('apikey-status').textContent = 'Key cleared.';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AI ASSESSMENT ENGINE
+// ═══════════════════════════════════════════════════════════
+function triggerAIAssessment(result) {
+  const key = getAPIKey();
+  // Reset UI to loading state
+  document.getElementById('ai-loading').style.display = 'flex';
+  document.getElementById('ai-result').style.display  = 'none';
+  document.getElementById('ai-error').style.display   = 'none';
+  document.getElementById('ai-nokey').style.display   = 'none';
+  document.getElementById('ai-status-badge').textContent = '● Analysing…';
+  document.getElementById('ai-status-badge').style.color = '#25B870';
+
+  if (!key) {
+    document.getElementById('ai-loading').style.display = 'none';
+    document.getElementById('ai-nokey').style.display   = 'block';
+    document.getElementById('ai-status-badge').textContent = '○ API Key Required';
+    document.getElementById('ai-status-badge').style.color = '#94a3b8';
+    return;
+  }
+  callChatGPT(result, key);
+}
+
+function buildPrompt(r) {
+  const csf = r.csfDetails;
+  const csfText = csf
+    ? `LP performed: Yes
+  - Appearance: ${csf.ap ? 'Clear/colourless' : 'Turbid/xanthochromic'}
+  - WBC: ${csf.wbcVal} cells/µL (${csf.wbc ? 'within TBM range 10–500' : 'outside TBM range'})
+  - Lymphocytic predominance: ${csf.lymph ? 'Yes' : 'No'}
+  - Protein: ${csf.prot ? '>1.0 g/L (elevated)' : '≤1.0 g/L (normal)'}
+  - CSF:serum glucose ratio: ${csf.gluc ? '<0.5 (low)' : '≥0.5 (normal)'}`
+    : 'LP not performed';
+
+  const micro = r.microChecked.length > 0
+    ? r.microChecked.join(', ')
+    : 'None positive';
+
+  return `You are an expert neurologist specialising in CNS infections and tuberculous meningitis (TBM). A clinician has submitted the following case for your review. Assess it with the depth and precision of a consultant neurologist.
+
+PATIENT:
+- Name: ${r.patient.name}
+- Age: ${r.patient.age || 'Not specified'} years | Sex: ${r.patient.sex || 'Not specified'}
+- HIV Status: ${r.patient.hiv}
+- Known TB Contact: ${r.patient.tbContact}
+
+MARAIS SCORE (Uniform TBM Case Definition 2010):
+- Clinical score: ${r.scores.clinical}/6
+- CSF score: ${r.scores.csf}/4
+- Neuroimaging score: ${r.scores.imaging}/${r.hasImaging ? 6 : 0} (imaging ${r.hasImaging ? 'performed' : 'NOT performed'})
+- TB elsewhere score: ${r.scores.tbElsewhere}/4
+- TOTAL: ${r.scores.total}/20
+- Classification: ${r.classification}
+
+CSF ANALYSIS:
+${csfText}
+
+MICROBIOLOGICAL EVIDENCE:
+${micro}
+
+ALTERNATIVE DIAGNOSES EXCLUDED: ${r.altDx || 'Not documented'}
+
+CLINICAL NOTES FROM CLINICIAN:
+${r.notes || 'None provided'}
+
+Please provide a structured neurologist's assessment covering:
+1. CASE INTERPRETATION: Your read of this case — do you agree with the classification? Any clinical nuances?
+2. RISK FLAGS: Any red flags, atypical features, or concerns beyond the score?
+3. IMMEDIATE PRIORITIES: The 2–3 most critical actions this clinician should take right now
+4. DIFFERENTIAL DIAGNOSIS: Key differentials to actively exclude given this presentation
+5. MONITORING: What parameters to track over the next 48–72 hours
+
+Be direct, clinically sharp, and brief. This is clinical decision support — not a lecture. Use plain language a physician can act on immediately. Format with clear bold headings for each section.`;
+}
+
+async function callChatGPT(result, apiKey) {
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: 'You are a consultant neurologist specialising in CNS infections. Be concise, clinically precise, and actionable. Format responses with **bold** section headers.' },
+          { role: 'user', content: buildPrompt(result) }
+        ],
+        max_tokens: 900,
+        temperature: 0.25
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error?.message || 'API error ' + response.status);
+    }
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    renderAIResponse(text);
+
+  } catch(err) {
+    document.getElementById('ai-loading').style.display  = 'none';
+    document.getElementById('ai-error').style.display    = 'block';
+    document.getElementById('ai-error-msg').textContent  = err.message;
+    document.getElementById('ai-status-badge').textContent = '○ Unavailable';
+    document.getElementById('ai-status-badge').style.color = '#ef4444';
+  }
+}
+
+// Store plain text for PDF export
+let _lastAIText = '';
+
+function renderAIResponse(text) {
+  _lastAIText = text; // save for PDF
+
+  const html = text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .split('\n\n')
+    .map(para => {
+      const trimmed = para.trim();
+      if (!trimmed) return '';
+      if (/^<strong>.*<\/strong>:?$/.test(trimmed) || /^\d+\.\s*<strong>/.test(trimmed)) {
+        return `<div class="ai-section-title">${trimmed.replace(/^\d+\.\s*/, '')}</div>`;
+      }
+      return `<div class="ai-section"><p>${trimmed.replace(/\n/g, '<br>')}</p></div>`;
+    })
+    .join('');
+
+  document.getElementById('ai-result').innerHTML =
+    html +
+    '<div class="ai-disclaimer">AI-generated assessment for clinical decision support only. Not a substitute for physician judgment.</div>';
+
+  document.getElementById('ai-loading').style.display = 'none';
+  document.getElementById('ai-result').style.display  = 'block';
+  document.getElementById('ai-status-badge').textContent = '✓ Assessment Ready';
+  document.getElementById('ai-status-badge').style.cssText = 'font-size:11px;background:rgba(37,184,112,.15);color:#25B870;padding:4px 12px;border-radius:20px;font-weight:600;border:1px solid rgba(37,184,112,.3);';
+}
+
+function computeScore() {
+  // ─ Clinical ─
+  const durEl = document.querySelector('input[name="duration"]:checked');
+  const durPts = durEl ? parseInt(durEl.value) : 0;
+
+  const systemicPts = document.querySelector('input[name="systemic"]:checked') ? 2 : 0;
+
+  let neuroPts = 0;
+  document.querySelectorAll('input[name="neuro"]:checked').forEach(() => neuroPts += 1);
+
+  const clinicalScore = Math.min(6, durPts + systemicPts + neuroPts);
+
+  // ─ CSF ─
+  const lpPerformed = document.querySelector('input[name="lp"]:checked')?.value === 'yes';
+  let csfScore = 0;
+  let csfDetails = {};
+  if (lpPerformed) {
+    const ap = document.getElementById('f-csf-appear').value === 'clear' ? 1 : 0;
+    const wbcVal = parseFloat(document.getElementById('f-csf-wbc').value);
+    const wbc = (wbcVal >= 10 && wbcVal <= 500) ? 1 : 0;
+    const lymph = document.getElementById('f-csf-lymph').value === 'yes' ? 1 : 0;
+    const prot = parseFloat(document.getElementById('f-csf-protein').value) > 1.0 ? 1 : 0;
+    const ratioVal = parseFloat(document.getElementById('f-csf-glucose-ratio').value);
+    const absVal = parseFloat(document.getElementById('f-csf-glucose-abs').value);
+    const gluc = (ratioVal < 0.5 || absVal < 2.2) ? 1 : 0;
+    csfScore = Math.min(4, ap + wbc + lymph + prot + gluc);
+    csfDetails = { ap, wbc, lymph, prot, gluc, wbcVal };
+  }
+
+  // ─ Microbiological (confirmatory) ─
+  const microChecked = [...document.querySelectorAll('input[name="micro"]:checked')].map(el => el.dataset.label || el.value);
+  const isDefinite = microChecked.length > 0;
+
+  // ─ Imaging ─
+  const hasImaging = document.querySelector('input[name="imaging"]:checked')?.value === 'yes';
+  let imagingScore = 0;
+  if (hasImaging) {
+    document.querySelectorAll('input[name="imaging-findings"]:checked').forEach(el => {
+      imagingScore += parseInt(el.dataset.pts || 0);
+    });
+    imagingScore = Math.min(6, imagingScore);
+  }
+
+  // ─ TB elsewhere ─
+  const cxrEl = document.querySelector('input[name="cxr"]:checked');
+  const cxrPts = cxrEl ? parseInt(cxrEl.value) : 0;
+  let extPts = 0;
+  document.querySelectorAll('input[name="extracns"]:checked').forEach(el => extPts += parseInt(el.dataset.pts || 0));
+  const tbElsewhereScore = Math.min(4, cxrPts + extPts);
+
+  const totalScore = clinicalScore + csfScore + imagingScore + tbElsewhereScore;
+
+  // ─ Classification ─
+  let classification, color, description;
+  if (isDefinite) {
+    classification = 'Definite TBM';
+    color = 'definite';
+    description = 'Confirmatory microbiological evidence present (CSF AFB/culture/PCR positive). Immediate anti-TB treatment is indicated.';
+  } else if (hasImaging) {
+    if (totalScore >= 12) {
+      classification = 'Probable TBM';
+      color = 'probable';
+      description = 'High clinical probability of TBM. Empirical anti-TB treatment is strongly recommended pending further workup.';
+    } else if (totalScore >= 6) {
+      classification = 'Possible TBM';
+      color = 'possible';
+      description = 'Moderate clinical probability. Evaluate carefully; consider empirical treatment if patient deteriorates or alternatives are excluded.';
+    } else {
+      classification = 'Unlikely TBM';
+      color = 'unlikely';
+      description = 'Low probability of TBM based on current evidence. Continue workup for alternative diagnoses.';
+    }
+  } else {
+    if (totalScore >= 10) {
+      classification = 'Probable TBM';
+      color = 'probable';
+      description = 'High clinical probability of TBM. Empirical anti-TB treatment is strongly recommended. Obtain neuroimaging urgently.';
+    } else if (totalScore >= 6) {
+      classification = 'Possible TBM';
+      color = 'possible';
+      description = 'Moderate probability. Obtain neuroimaging if possible; consider empirical treatment based on clinical trajectory.';
+    } else {
+      classification = 'Unlikely TBM';
+      color = 'unlikely';
+      description = 'Low probability based on current evidence. Investigate alternative diagnoses.';
+    }
+  }
+
+  const altDx = document.querySelector('input[name="altdx"]:checked')?.value;
+
+  return {
+    id: Date.now(),
+    date: new Date().toISOString(),
+    patient: {
+      name: document.getElementById('f-name').value || 'Unnamed Patient',
+      age: document.getElementById('f-age').value,
+      sex: document.getElementById('f-sex').value,
+      hiv: document.getElementById('f-hiv').value,
+      tbContact: document.getElementById('f-tb-contact').value,
+    },
+    scores: { clinical: clinicalScore, csf: csfScore, imaging: imagingScore, tbElsewhere: tbElsewhereScore, total: totalScore },
+    isDefinite,
+    hasImaging,
+    classification,
+    color,
+    description,
+    microChecked,
+    altDx,
+    notes: document.getElementById('f-notes').value,
+    clinician: currentUser?.name,
+    csfDetails: lpPerformed ? csfDetails : null,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RESULTS RENDERER
+// ═══════════════════════════════════════════════════════════
+function renderResults(r) {
+  document.getElementById('results-hero').className = 'results-hero results-hero-' + r.color;
+  document.getElementById('r-class-label').textContent = 'TBM CLASSIFICATION';
+  document.getElementById('r-label').textContent = r.classification;
+  document.getElementById('r-desc').textContent = r.description;
+
+  // Positive findings — labels only, no scores
+  const findings = [];
+  if (r.scores.clinical > 0)    findings.push('Clinical criteria met');
+  if (r.scores.csf > 0)         findings.push('CSF criteria met');
+  if (r.scores.imaging > 0)     findings.push('Neuroimaging criteria met');
+  if (r.scores.tbElsewhere > 0) findings.push('Extra-CNS TB evidence present');
+  if (r.microChecked.length > 0) r.microChecked.forEach(m => findings.push(m + ' (Confirmatory)'));
+
+  document.getElementById('r-findings').innerHTML = findings.length
+    ? findings.map(label => `
+        <div class="finding-row">
+          <span class="finding-check">✔</span>
+          <span>${label}</span>
+        </div>
+      `).join('')
+    : '<div class="text-muted text-sm">No positive criteria recorded.</div>';
+
+  // Recommendations
+  const recos = getRecommendations(r);
+  document.getElementById('r-recommendations').innerHTML = recos.map(rec => `
+    <div class="reco-card reco-${rec.type}">
+      <div class="reco-title">${rec.title}</div>
+      <div>${rec.text}</div>
+    </div>
+  `).join('');
+}
+
+function scoreBlock(label, val, max) {
+  const pct = max > 0 ? Math.round((val/max)*100) : 0;
+  const color = pct >= 75 ? '#D0392B' : pct >= 50 ? '#E07B00' : pct >= 25 ? '#028090' : '#A8D8E0';
+  return `
+    <div class="score-block">
+      <div class="val">${val}</div>
+      <div class="max">/ ${max}</div>
+      <div class="lbl">${label}</div>
+      <div class="progress-bar-wrap" style="margin-top:8px;">
+        <div class="progress-bar" style="width:${max>0?pct:0}%;background:${color};"></div>
+      </div>
+    </div>`;
+}
+
+function categoryBar(label, val, max) {
+  const pct = max > 0 ? Math.round((val/max)*100) : 0;
+  return `
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+        <span>${label}</span>
+        <span class="bold">${val} / ${max}</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" style="width:${pct}%;background:var(--teal);"></div>
+      </div>
+    </div>`;
+}
+
+function getRecommendations(r) {
+  const recos = [];
+  if (r.isDefinite || r.color === 'probable') {
+    recos.push({ type: 'urgent', title: '🚨 Initiate Anti-TB Treatment', text: 'Commence HRZE (isoniazid, rifampicin, pyrazinamide, ethambutol) immediately. Do not delay treatment pending culture results.' });
+  }
+  if (r.color === 'possible') {
+    recos.push({ type: 'warn', title: '⚠️ Consider Empirical Treatment', text: 'Score indicates possible TBM. Clinical judgment required. If patient deteriorates or alternative diagnoses excluded, initiate empirical anti-TB therapy.' });
+  }
+  if (r.color === 'probable' || r.color === 'definite') {
+    recos.push({ type: 'urgent', title: '💉 Adjuvant Dexamethasone', text: 'WHO guidelines recommend adjuvant corticosteroids (dexamethasone) for TBM to reduce mortality and morbidity.' });
+  }
+  if (!r.hasImaging) {
+    recos.push({ type: 'warn', title: '🖥️ Obtain Neuroimaging', text: 'CT/MRI brain not performed. Imaging can increase diagnostic precision and detect complications (hydrocephalus, infarcts).' });
+  }
+  if (r.patient.hiv === 'positive' || r.patient.hiv === 'unknown') {
+    recos.push({ type: 'info', title: '🔴 HIV Consideration', text: 'HIV co-infection may attenuate CSF inflammation. Also screen for cryptococcal meningitis (India ink, CrAg). Timing of ART initiation requires careful planning.' });
+  }
+  if (r.scores.csf === 0 && !r.csfDetails) {
+    recos.push({ type: 'info', title: '🧬 Perform Lumbar Puncture', text: 'CSF analysis is essential for TBM diagnosis. If not yet performed and no contraindication, prioritize LP. Send for cell count, protein, glucose, AFB smear, culture, and GeneXpert MTB/RIF.' });
+  }
+  if (r.color === 'unlikely') {
+    recos.push({ type: 'info', title: '🔍 Investigate Alternatives', text: 'Consider bacterial meningitis (cultures, CRP), viral meningitis (HSV PCR), cryptococcal meningitis, or other CNS infections based on clinical context.' });
+  }
+  recos.push({ type: 'info', title: '📊 Reassess as Results Return', text: 'Update this assessment when CSF culture, AFB, imaging, or serological results become available to refine classification.' });
+  return recos;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PDF GENERATOR
+// ═══════════════════════════════════════════════════════════
+function generatePDF() {
+  // Pull the last rendered result from cases array
+  const r = cases[0];
+  if (!r) { alert('No report to export. Please run an assessment first.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = 210; // A4 width
+  const margin = 18;
+  const col = W - margin * 2;
+  let y = 0;
+
+  // ── Helpers ──────────────────────────────────────────────
+  const teal   = [2, 128, 144];
+  const navy   = [13, 33, 55];
+  const white  = [255, 255, 255];
+  const light  = [240, 244, 248];
+  const muted  = [107, 130, 153];
+  const danger = [208, 57, 43];
+  const warn   = [224, 123, 0];
+  const blue   = [30, 64, 175];
+  const green  = [25, 135, 84];
+
+  const colorForClass = {
+    definite: danger,
+    probable: warn,
+    possible: blue,
+    unlikely: green,
+  };
+  const heroColor = colorForClass[r.color] || teal;
+
+  // ── HEADER BANNER ────────────────────────────────────────
+  doc.setFillColor(...navy);
+  doc.rect(0, 0, W, 28, 'F');
+
+  doc.setTextColor(...white);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('GoMed', margin, 12);
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(180, 210, 220);
+  doc.text('AI-Assisted TBM Clinical Decision Support', margin, 18);
+  doc.text('Uniform Case Definition (Marais et al. 2010)', margin, 23);
+
+  doc.setTextColor(...white);
+  doc.setFontSize(8);
+  const dateStr = new Date(r.date).toLocaleString();
+  doc.text('Report: ' + dateStr, W - margin, 12, { align: 'right' });
+  doc.text('Clinician: ' + (r.clinician || '—'), W - margin, 18, { align: 'right' });
+
+  y = 36;
+
+  // ── CLASSIFICATION HERO ──────────────────────────────────
+  doc.setFillColor(...heroColor);
+  doc.roundedRect(margin, y, col, 30, 3, 3, 'F');
+
+  doc.setTextColor(...white);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TBM CLASSIFICATION', margin + 6, y + 8);
+
+  doc.setFontSize(18);
+  doc.text(r.classification, margin + 6, y + 18);
+
+  const scoreLabel = r.isDefinite ? 'CONFIRMED' : r.scores.total + ' / 20 pts';
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text(scoreLabel, W - margin - 4, y + 18, { align: 'right' });
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(220, 240, 245);
+  const descLines = doc.splitTextToSize(r.description, col - 12);
+  doc.text(descLines, margin + 6, y + 24);
+
+  y += 38;
+
+  // ── PATIENT DETAILS ──────────────────────────────────────
+  doc.setFillColor(...light);
+  doc.roundedRect(margin, y, col, 7, 2, 2, 'F');
+  doc.setTextColor(...teal);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PATIENT INFORMATION', margin + 4, y + 5);
+  y += 10;
+
+  doc.autoTable({
+    startY: y,
+    margin: { left: margin, right: margin },
+    theme: 'plain',
+    styles: { fontSize: 9, cellPadding: 2, textColor: [26, 45, 63] },
+    columnStyles: {
+      0: { cellWidth: 42, fontStyle: 'bold', textColor: muted },
+      1: { cellWidth: 58 },
+      2: { cellWidth: 42, fontStyle: 'bold', textColor: muted },
+      3: { cellWidth: 48 },
+    },
+    body: [
+      ['Patient Name / ID', r.patient.name,     'Date',          new Date(r.date).toLocaleDateString()],
+      ['Age',              (r.patient.age || '—') + ' years',    'Sex',           r.patient.sex || '—'],
+      ['HIV Status',       r.patient.hiv || '—', 'TB Contact',   r.patient.tbContact || '—'],
+      ['Imaging Done',     r.hasImaging ? 'Yes' : 'No',          'Alt Dx Status', r.altDx || '—'],
+    ],
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  // ── SCORE BREAKDOWN ──────────────────────────────────────
+  doc.setFillColor(...light);
+  doc.roundedRect(margin, y, col, 7, 2, 2, 'F');
+  doc.setTextColor(...teal);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SCORE BY CATEGORY', margin + 4, y + 5);
+  y += 10;
+
+  const categories = [
+    { label: 'Clinical Criteria',   score: r.scores.clinical,    max: 6 },
+    { label: 'CSF Analysis',        score: r.scores.csf,         max: 4 },
+    { label: 'Cerebral Imaging',    score: r.scores.imaging,     max: r.hasImaging ? 6 : 0 },
+    { label: 'TB Evidence Elsewhere', score: r.scores.tbElsewhere, max: 4 },
+  ];
+
+  // Draw score bars manually
+  categories.forEach(cat => {
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...navy);
+    doc.text(cat.label, margin, y + 4);
+    doc.setFont('helvetica', 'bold');
+    doc.text(cat.score + ' / ' + cat.max, W - margin, y + 4, { align: 'right' });
+
+    // bar bg
+    const barX = margin + 60;
+    const barW = col - 68;
+    doc.setFillColor(210, 220, 230);
+    doc.roundedRect(barX, y, barW, 4, 1, 1, 'F');
+    // bar fill
+    const pct = cat.max > 0 ? cat.score / cat.max : 0;
+    if (pct > 0) {
+      const fillColor = pct >= 0.75 ? danger : pct >= 0.5 ? warn : teal;
+      doc.setFillColor(...fillColor);
+      doc.roundedRect(barX, y, barW * pct, 4, 1, 1, 'F');
+    }
+    y += 9;
+  });
+
+  // Total score row
+  doc.setFillColor(...teal);
+  doc.roundedRect(margin, y, col, 8, 2, 2, 'F');
+  doc.setTextColor(...white);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TOTAL SCORE', margin + 4, y + 5.5);
+  doc.text(r.isDefinite ? 'DEFINITE (Confirmed)' : r.scores.total + ' / 20 points', W - margin - 4, y + 5.5, { align: 'right' });
+  y += 14;
+
+  // ── POSITIVE FINDINGS ────────────────────────────────────
+  const findings = [];
+  if (r.scores.clinical > 0)    findings.push(['+', 'Clinical criteria met',       r.scores.clinical + ' pts']);
+  if (r.scores.csf > 0)         findings.push(['+', 'CSF criteria met',            r.scores.csf + ' pts']);
+  if (r.scores.imaging > 0)     findings.push(['+', 'Neuroimaging criteria met',   r.scores.imaging + ' pts']);
+  if (r.scores.tbElsewhere > 0) findings.push(['+', 'Extra-CNS TB evidence',       r.scores.tbElsewhere + ' pts']);
+  (r.microChecked || []).forEach(m => findings.push(['+', m, 'Confirmatory']));
+
+  if (findings.length > 0) {
+    doc.setFillColor(...light);
+    doc.roundedRect(margin, y, col, 7, 2, 2, 'F');
+    doc.setTextColor(...teal);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('POSITIVE FINDINGS', margin + 4, y + 5);
+    y += 10;
+
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      theme: 'plain',
+      styles: { fontSize: 9, cellPadding: 2.5, textColor: [26, 45, 63] },
+      columnStyles: {
+        0: { cellWidth: 8,  textColor: green },
+        1: { cellWidth: 140 },
+        2: { cellWidth: 32, halign: 'right', fontStyle: 'bold', textColor: teal },
+      },
+      body: findings,
+    });
+    y = doc.lastAutoTable.finalY + 6;
+  }
+
+  // ── CLINICAL RECOMMENDATIONS ─────────────────────────────
+  const recos = getRecommendations(r);
+  if (y > 240) { doc.addPage(); y = 20; }
+
+  doc.setFillColor(...light);
+  doc.roundedRect(margin, y, col, 7, 2, 2, 'F');
+  doc.setTextColor(...teal);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CLINICAL RECOMMENDATIONS', margin + 4, y + 5);
+  y += 10;
+
+  const recoColors    = { urgent: danger, warn: warn, info: teal };
+  // Light pastel backgrounds (pure RGB — no 4th arg which jsPDF misreads as CMYK)
+  const recoBgColors  = { urgent: [255, 238, 236], warn: [255, 248, 228], info: [230, 247, 249] };
+
+  // jsPDF Helvetica does not support emoji — strip them before rendering
+  const stripEmoji = str => str.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2300}-\u{23FF}]|\u{FE0F}/gu, '').trim();
+
+  recos.forEach(rec => {
+    if (y > 265) { doc.addPage(); y = 20; }
+    const c  = recoColors[rec.type]   || teal;
+    const bg = recoBgColors[rec.type] || [240, 248, 252];
+
+    const titleLines = doc.splitTextToSize(stripEmoji(rec.title), col - 12);
+    const bodyLines  = doc.splitTextToSize(rec.text, col - 12);
+    const blockH = (titleLines.length * 5) + (bodyLines.length * 4.5) + 8;
+
+    // Light background fill
+    doc.setFillColor(bg[0], bg[1], bg[2]);
+    doc.setDrawColor(c[0], c[1], c[2]);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(margin, y, col, blockH, 2, 2, 'FD');
+
+    // Coloured left accent bar
+    doc.setFillColor(c[0], c[1], c[2]);
+    doc.rect(margin, y, 3, blockH, 'F');
+
+    // Title — coloured, bold
+    doc.setTextColor(c[0], c[1], c[2]);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(titleLines, margin + 7, y + 6);
+
+    // Body — dark text, readable on light bg
+    doc.setTextColor(30, 45, 60);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(bodyLines, margin + 7, y + 6 + titleLines.length * 5);
+
+    y += blockH + 4;
+  });
+
+  // ── NOTES ────────────────────────────────────────────────
+  if (r.notes) {
+    if (y > 255) { doc.addPage(); y = 20; }
+    doc.setFillColor(...light);
+    doc.roundedRect(margin, y, col, 7, 2, 2, 'F');
+    doc.setTextColor(...teal);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CLINICAL NOTES', margin + 4, y + 5);
+    y += 10;
+
+    doc.setTextColor(...navy);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    const noteLines = doc.splitTextToSize(r.notes, col);
+    doc.text(noteLines, margin, y);
+    y += noteLines.length * 4.5 + 4;
+  }
+
+  // ── AI NEUROLOGIST ASSESSMENT ─────────────────────────────
+  if (_lastAIText && _lastAIText.trim()) {
+    doc.addPage();
+    y = 20;
+
+    // Section header bar
+    doc.setFillColor(...navy);
+    doc.roundedRect(margin, y, col, 10, 2, 2, 'F');
+    doc.setTextColor(...white);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('AI NEUROLOGIST ASSESSMENT', margin + 4, y + 6.5);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Powered by GPT-4o  |  For clinical decision support only', W - margin - 4, y + 6.5, { align: 'right' });
+    y += 15;
+
+    // Strip markdown and render each paragraph/section
+    const aiPlain = _lastAIText.replace(/\*\*/g, '');
+    const aiParas = aiPlain.split('\n\n').filter(p => p.trim());
+
+    aiParas.forEach(para => {
+      const trimmed = para.trim();
+      if (!trimmed) return;
+      if (y > 265) { doc.addPage(); y = 20; }
+
+      // Detect numbered section headings like "1. CASE INTERPRETATION:"
+      const isHeading = /^\d+\.\s+[A-Z\s]+:?$/.test(trimmed) || /^[A-Z\s]{6,}:$/.test(trimmed);
+
+      if (isHeading) {
+        y += 3;
+        doc.setFillColor(...teal);
+        doc.rect(margin, y, col, 0.4, 'F');
+        y += 4;
+        doc.setTextColor(...teal);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'bold');
+        const headingClean = trimmed.replace(/^\d+\.\s*/, '').replace(/:$/, '');
+        doc.text(headingClean, margin, y);
+        y += 6;
+      } else {
+        doc.setTextColor(26, 45, 63);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        const lines = trimmed.split('\n');
+        lines.forEach(line => {
+          if (y > 265) { doc.addPage(); y = 20; }
+          const wrapped = doc.splitTextToSize(line.trim(), col);
+          doc.text(wrapped, margin, y);
+          y += wrapped.length * 4.5;
+        });
+        y += 3;
+      }
+    });
+
+    // Disclaimer box
+    y += 4;
+    if (y > 265) { doc.addPage(); y = 20; }
+    doc.setFillColor(240, 247, 252);
+    doc.setDrawColor(...teal);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, y, col, 10, 2, 2, 'FD');
+    doc.setFillColor(...teal);
+    doc.rect(margin, y, 2.5, 10, 'F');
+    doc.setTextColor(80, 100, 120);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'italic');
+    doc.text('AI-generated assessment for clinical decision support only. Not a substitute for physician judgment. Verify all recommendations against current guidelines.', margin + 5, y + 6.5, { maxWidth: col - 6 });
+  }
+
+  // ── FOOTER ───────────────────────────────────────────────
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFillColor(...navy);
+    doc.rect(0, 285, W, 12, 'F');
+    doc.setTextColor(160, 190, 210);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('GoMed — Clinical Decision Support Tool  |  Uniform TBM Case Definition (Marais et al. 2010)', margin, 291);
+    doc.text('Page ' + i + ' of ' + pageCount + '  |  For clinical use only — does not replace physician judgment', W - margin, 291, { align: 'right' });
+  }
+
+  // ── SAVE ─────────────────────────────────────────────────
+  const safeName = (r.patient.name || 'patient').replace(/[^a-z0-9]/gi, '_');
+  const dateTag  = new Date(r.date).toISOString().slice(0, 10);
+  doc.save('GoMed_' + safeName + '_' + dateTag + '.pdf');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CASE STORAGE
+// ═══════════════════════════════════════════════════════════
+function saveCase(result) {
+  cases.unshift(result);
+  localStorage.setItem('gomed_cases', JSON.stringify(cases));
+}
+
+function startNewCase() {
+  navigate('new');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function updateDashboard() {
+  const total = cases.length;
+  const probable = cases.filter(c => c.color === 'probable' || c.color === 'definite').length;
+  const possible = cases.filter(c => c.color === 'possible').length;
+  const today = cases.filter(c => {
+    const d = new Date(c.date);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  }).length;
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-definite').textContent = probable;
+  document.getElementById('stat-possible').textContent = possible;
+  document.getElementById('stat-today').textContent = today;
+
+  const rc = document.getElementById('recent-cases');
+  if (cases.length === 0) {
+    rc.innerHTML = `<div class="empty-state"><div class="icon">🗂️</div><h3>No cases yet</h3><p>Start your first TBM diagnostic assessment</p></div>`;
+  } else {
+    rc.innerHTML = cases.slice(0, 5).map(c => `
+      <div class="case-row" onclick="viewCase('${c.id}')">
+        <div class="case-avatar">👤</div>
+        <div class="case-info">
+          <div class="name">${c.patient.name}</div>
+          <div class="meta">${c.patient.age ? c.patient.age + ' yr · ' : ''}${new Date(c.date).toLocaleDateString()}</div>
+        </div>
+        <span class="risk-badge risk-${c.color}">${c.classification}</span>
+        <div class="case-score">
+          <div class="score">${c.isDefinite ? '✓' : c.scores.total}</div>
+          <div class="pts">${c.isDefinite ? 'confirmed' : 'points'}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════════════════════════
+function renderHistory(filter='') {
+  const hc = document.getElementById('history-content');
+  const filtered = cases.filter(c =>
+    !filter || c.patient.name.toLowerCase().includes(filter.toLowerCase()) ||
+    c.classification.toLowerCase().includes(filter.toLowerCase())
+  );
+  if (filtered.length === 0) {
+    hc.innerHTML = `<div class="empty-state"><div class="icon">📋</div><h3>${filter ? 'No matches found' : 'No cases yet'}</h3><p>${filter ? 'Try a different search term' : 'Complete your first assessment to see it here'}</p></div>`;
+    return;
+  }
+  hc.innerHTML = `
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Age/Sex</th>
+          <th>Date</th>
+          <th>Score</th>
+          <th>Classification</th>
+          <th>Imaging</th>
+          <th>Clinician</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filtered.map(c => `
+          <tr onclick="viewCase('${c.id}')">
+            <td style="font-weight:600;">${c.patient.name}</td>
+            <td>${c.patient.age ? c.patient.age + ' yr' : '—'} / ${c.patient.sex || '—'}</td>
+            <td>${new Date(c.date).toLocaleDateString()}</td>
+            <td style="font-weight:700;color:var(--teal);">${c.isDefinite ? 'Definite' : c.scores.total + '/20'}</td>
+            <td><span class="risk-badge risk-${c.color}">${c.classification}</span></td>
+            <td>${c.hasImaging ? '✔ Yes' : '—'}</td>
+            <td>${c.clinician || '—'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+}
+
+function filterHistory() {
+  renderHistory(document.getElementById('history-search').value);
+}
+
+function viewCase(id) {
+  const c = cases.find(x => String(x.id) === String(id));
+  if (!c) return;
+  renderResults(c);
+  navigate('results');
+  document.getElementById('view-results').classList.remove('hidden');
+  document.getElementById('topbar-title').textContent = 'Diagnostic Report';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MISC
+// ═══════════════════════════════════════════════════════════
+function showCriteria() {
+  document.getElementById('criteria-modal').classList.remove('hidden');
+}
+
+// Close modal on background click
+document.getElementById('criteria-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.add('hidden');
+});
+</script>
+</body>
+</html>
