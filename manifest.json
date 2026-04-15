@@ -1,0 +1,27 @@
+{
+  "name": "GoMed — TBM Clinical Decision Support",
+  "short_name": "GoMed",
+  "description": "Tuberculous Meningitis clinical decision support tool for neurologists and infectious disease specialists.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0D2137",
+  "theme_color": "#028090",
+  "lang": "en",
+  "categories": ["medical", "health"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

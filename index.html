@@ -2,8 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>GoMed — TBM Clinical Decision Support</title>
+
+  <!-- PWA: Web App Manifest -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- PWA: Theme & status bar -->
+  <meta name="theme-color" content="#028090" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- iOS PWA support -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GoMed" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+
+  <!-- SEO / Social -->
+  <meta name="description" content="Tuberculous Meningitis clinical decision support for neurologists and infectious disease specialists." />
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <style>
@@ -917,6 +934,53 @@
       .stat-card { flex-direction: row; align-items: center; gap: 14px; padding: 14px 16px; }
       .stat-icon { margin-bottom: 0; font-size: 20px; }
     }
+
+    /* ── PWA Install Banner ───────────────────────────────── */
+    #pwa-install-banner {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      padding-bottom: calc(14px + env(safe-area-inset-bottom));
+      background: var(--navy);
+      border-top: 2px solid var(--teal);
+      box-shadow: 0 -4px 20px rgba(2,128,144,.25);
+      animation: slideUp 0.3s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    .pwa-banner-icon img { border-radius: 10px; display: block; }
+    .pwa-banner-text { flex: 1; min-width: 0; }
+    .pwa-banner-title { font-weight: 700; font-size: 14px; color: #fff; }
+    .pwa-banner-sub   { font-size: 12px; color: rgba(255,255,255,.65); margin-top: 2px; }
+    .pwa-banner-btn {
+      flex-shrink: 0;
+      background: var(--teal);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .pwa-banner-btn:hover { background: var(--teal-dark); }
+    .pwa-banner-close {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,.55);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      line-height: 1;
+    }
+    .pwa-banner-close:hover { color: #fff; }
   </style>
 </head>
 <body>
@@ -3002,6 +3066,65 @@ document.querySelectorAll('.nav-item').forEach(function(el) {
     if (window.innerWidth <= 900) closeSidebar();
   });
 });
+
+// ── PWA: Service Worker registration ────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js')
+      .then(function(reg) {
+        // Check for updates on each page load
+        reg.update();
+      })
+      .catch(function(err) {
+        console.warn('Service worker registration failed:', err);
+      });
+  });
+}
+
+// ── PWA: Install prompt (Android "Add to Home Screen") ──────
+let _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  // Show install banner after a short delay if not already installed
+  setTimeout(showInstallBanner, 3000);
+});
+
+function showInstallBanner() {
+  if (!_deferredInstallPrompt) return;
+  if (window.matchMedia('(display-mode: standalone)').matches) return; // already installed
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.classList.remove('hidden');
+}
+
+function pwaInstall() {
+  if (!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  _deferredInstallPrompt.userChoice.then(function() {
+    _deferredInstallPrompt = null;
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) banner.classList.add('hidden');
+  });
+}
+
+function pwaDismiss() {
+  _deferredInstallPrompt = null;
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.classList.add('hidden');
+}
 </script>
+
+<!-- PWA Install Banner (Android) -->
+<div id="pwa-install-banner" class="hidden" role="banner" aria-label="Install GoMed app">
+  <div class="pwa-banner-icon">
+    <img src="icons/icon.svg" alt="GoMed" width="40" height="40" />
+  </div>
+  <div class="pwa-banner-text">
+    <div class="pwa-banner-title">Install GoMed</div>
+    <div class="pwa-banner-sub">Add to home screen for quick access</div>
+  </div>
+  <button class="pwa-banner-btn" onclick="pwaInstall()">Install</button>
+  <button class="pwa-banner-close" onclick="pwaDismiss()" aria-label="Dismiss">&#x2715;</button>
+</div>
 </body>
 </html>

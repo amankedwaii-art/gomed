@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#0D2137"/>
+
+  <!-- Brain silhouette (simplified, centered) -->
+  <!-- Left hemisphere -->
+  <path d="M256,140
+    C220,140 195,155 182,175
+    C165,175 148,188 148,208
+    C135,215 126,230 128,248
+    C118,258 118,275 128,285
+    C122,298 126,315 138,322
+    C140,340 155,355 172,356
+    C185,372 205,378 222,372
+    C235,382 250,384 256,382
+    L256,140 Z"
+    fill="#028090" opacity="0.9"/>
+
+  <!-- Right hemisphere -->
+  <path d="M256,140
+    C292,140 317,155 330,175
+    C347,175 364,188 364,208
+    C377,215 386,230 384,248
+    C394,258 394,275 384,285
+    C390,298 386,315 374,322
+    C372,340 357,355 340,356
+    C327,372 307,378 290,372
+    C277,382 262,384 256,382
+    L256,140 Z"
+    fill="#00A896" opacity="0.9"/>
+
+  <!-- Brain texture lines left -->
+  <path d="M195,220 C185,230 183,248 190,260" stroke="#0D2137" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M178,245 C172,258 175,275 185,282" stroke="#0D2137" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M210,190 C200,200 198,215 205,225" stroke="#0D2137" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- Brain texture lines right -->
+  <path d="M317,220 C327,230 329,248 322,260" stroke="#0D2137" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M334,245 C340,258 337,275 327,282" stroke="#0D2137" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M302,190 C312,200 314,215 307,225" stroke="#0D2137" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- EKG / heartbeat line across the middle -->
+  <polyline
+    points="90,310 150,310 172,280 190,340 210,268 228,330 244,310 268,310 284,295 300,325 318,310 422,310"
+    fill="none" stroke="#02C39A" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Stem -->
+  <rect x="246" y="378" width="20" height="30" rx="8" fill="#028090"/>
+</svg>
