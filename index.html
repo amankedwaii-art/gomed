@@ -1655,7 +1655,7 @@
               </div>
               <div>
                 <div style="font-size:14px;font-weight:700;color:#fff;">AI Neurologist Assessment</div>
-                <div style="font-size:11px;color:rgba(255,255,255,.55);">GPT-4o — analysing case in background</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.55);">Llama 3.3 70B via Groq — free AI assessment</div>
               </div>
             </div>
             <div id="ai-status-badge" style="font-size:11px;background:rgba(37,184,112,.15);color:#25B870;padding:4px 12px;border-radius:20px;font-weight:600;border:1px solid rgba(37,184,112,.3);">● Analysing…</div>
@@ -1674,13 +1674,13 @@
             <div id="ai-error" style="display:none;">
               <div style="background:#fff5f5;border:1px solid #fcc;border-radius:8px;padding:14px 16px;font-size:13px;color:#c0392b;">
                 <strong>AI assessment unavailable.</strong> <span id="ai-error-msg"></span><br>
-                <span style="color:var(--muted);font-size:12px;">Add your OpenAI API key in <button onclick="openAPIKeyModal()" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:12px;text-decoration:underline;padding:0;">Settings</button> to enable this feature.</span>
+                <span style="color:var(--muted);font-size:12px;">Add your free Groq API key in <button onclick="openAPIKeyModal()" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:12px;text-decoration:underline;padding:0;">Settings</button> to enable this feature.</span>
               </div>
             </div>
             <!-- No key -->
             <div id="ai-nokey" style="display:none;text-align:center;padding:24px 0;">
-              <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Enter your OpenAI API key to unlock AI-powered neurologist assessment.</div>
-              <button onclick="openAPIKeyModal()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:13px;font-weight:600;">⚙ Add API Key</button>
+              <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Add your free Groq API key to unlock AI-powered neurologist assessment. No credit card required.</div>
+              <button onclick="openAPIKeyModal()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:13px;font-weight:600;">⚙ Add Free API Key</button>
             </div>
           </div>
         </div>
@@ -1735,18 +1735,18 @@
   <div style="background:#fff;border-radius:16px;width:90%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
     <div style="padding:22px 26px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div style="font-size:17px;font-weight:700;color:var(--navy);">⚙ OpenAI API Key</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Required for AI Neurologist Assessment</div>
+        <div style="font-size:17px;font-weight:700;color:var(--navy);">⚙ Groq API Key</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Free AI assessment powered by Llama 3.3</div>
       </div>
       <button onclick="closeAPIKeyModal()" style="font-size:20px;background:none;border:none;color:var(--muted);cursor:pointer;">✕</button>
     </div>
     <div style="padding:22px 26px;">
       <div style="background:#f0f9ff;border:1px solid #bae0fb;border-radius:8px;padding:12px 14px;font-size:12.5px;color:#0369a1;margin-bottom:18px;line-height:1.6;">
-        🔒 Your API key is stored only in your browser's local storage and is <strong>never sent anywhere</strong> except directly to OpenAI's servers.
+        🔒 Your API key is stored only in your browser's local storage and is <strong>never sent anywhere</strong> except directly to Groq's servers. Groq is free — no credit card required.
       </div>
       <label style="font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:6px;">API Key</label>
-      <input type="password" id="apikey-input" placeholder="sk-proj-..." style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;outline:none;"/>
-      <div style="font-size:11.5px;color:var(--muted);margin-top:6px;">Get your key at <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--teal);">platform.openai.com/api-keys</a></div>
+      <input type="password" id="apikey-input" placeholder="gsk_..." style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;outline:none;"/>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:6px;">Get your free key at <a href="https://console.groq.com/keys" target="_blank" style="color:var(--teal);">console.groq.com/keys</a></div>
       <div style="display:flex;gap:10px;margin-top:20px;">
         <button onclick="saveAPIKey()" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;">Save Key</button>
         <button onclick="clearAPIKey()" style="padding:10px 16px;background:#fff;border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--muted);cursor:pointer;">Clear</button>
@@ -2122,7 +2122,7 @@ function renderResultsImageGallery() {
 //  API KEY MANAGEMENT
 // ═══════════════════════════════════════════════════════════
 function getAPIKey() {
-  try { return localStorage.getItem('gomed_openai_key') || ''; } catch(e) { return ''; }
+  try { return localStorage.getItem('gomed_groq_key') || ''; } catch(e) { return ''; }
 }
 function openAPIKeyModal() {
   const modal = document.getElementById('apikey-modal');
@@ -2137,11 +2137,11 @@ function closeAPIKeyModal() {
 function saveAPIKey() {
   const val = document.getElementById('apikey-input').value.trim();
   if (!val || val.startsWith('••••')) {
-    document.getElementById('apikey-status').textContent = '⚠ Enter a valid key starting with sk-';
+    document.getElementById('apikey-status').textContent = '⚠ Enter a valid key starting with gsk_';
     return;
   }
   try {
-    localStorage.setItem('gomed_openai_key', val);
+    localStorage.setItem('gomed_groq_key', val);
     document.getElementById('apikey-status').textContent = '✅ Key saved successfully';
     setTimeout(closeAPIKeyModal, 1000);
   } catch(e) {
@@ -2149,7 +2149,7 @@ function saveAPIKey() {
   }
 }
 function clearAPIKey() {
-  try { localStorage.removeItem('gomed_openai_key'); } catch(e) {}
+  try { localStorage.removeItem('gomed_groq_key'); } catch(e) {}
   document.getElementById('apikey-input').value = '';
   document.getElementById('apikey-status').textContent = 'Key cleared.';
 }
@@ -2174,7 +2174,7 @@ function triggerAIAssessment(result) {
     document.getElementById('ai-status-badge').style.color = '#94a3b8';
     return;
   }
-  callChatGPT(result, key);
+  callGroq(result, key);
 }
 
 function buildPrompt(r) {
@@ -2229,31 +2229,19 @@ Please provide a structured neurologist's assessment covering:
 Be direct, clinically sharp, and brief. This is clinical decision support — not a lecture. Use plain language a physician can act on immediately. Format with clear bold headings for each section.`;
 }
 
-async function callChatGPT(result, apiKey) {
+async function callGroq(result, apiKey) {
   try {
-    // Build user message — include images if uploaded
-    const allImages = [..._uploadedImages.neuro, ..._uploadedImages.cxr];
-    const userContent = allImages.length > 0
-      ? [
-          { type: 'text', text: buildPrompt(result) + '\n\nNOTE: Clinical images have been attached. Please analyse them as part of your assessment — describe what you observe and how it influences your interpretation.' },
-          ...allImages.map(img => ({
-            type: 'image_url',
-            image_url: { url: img.base64, detail: 'high' }
-          }))
-        ]
-      : buildPrompt(result);
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + apiKey
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: 'You are a consultant neurologist specialising in CNS infections. Be concise, clinically precise, and actionable. When images are provided, describe key findings visible in each image before giving your overall assessment. Format responses with **bold** section headers.' },
-          { role: 'user', content: userContent }
+          { role: 'system', content: 'You are a consultant neurologist specialising in CNS infections. Be concise, clinically precise, and actionable. Format responses with **bold** section headers.' },
+          { role: 'user', content: buildPrompt(result) }
         ],
         max_tokens: 1200,
         temperature: 0.25
