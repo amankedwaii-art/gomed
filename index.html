@@ -1216,7 +1216,7 @@
             <div class="grid-3" style="margin-bottom:20px;">
               <div>
                 <label class="field-label">Patient Name / ID</label>
-                <input class="input-field" type="text" id="f-name" placeholder="e.g. Patient A or ID-001" />
+                <input class="input-field" type="text" id="f-name" placeholder="Auto-generated" />
               </div>
               <div>
                 <label class="field-label">Age (years)</label>
@@ -1892,6 +1892,13 @@ function resetWizard() {
   document.querySelectorAll('.checkbox-item, .radio-item').forEach(el => el.classList.remove('checked','selected'));
   document.getElementById('lp-fields').classList.add('hidden');
   document.getElementById('imaging-fields').classList.add('hidden');
+  // Auto-generate patient ID
+  document.getElementById('f-name').value = generatePatientId();
+}
+
+function generatePatientId() {
+  const next = cases.length + 1;
+  return 'GMD-' + String(next).padStart(3, '0');
 }
 
 function goToStep(n) {
