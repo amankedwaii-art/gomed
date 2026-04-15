@@ -153,6 +153,26 @@
     }
     .btn-primary:hover { background: var(--teal-dark); }
     .login-hint { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+    .login-form-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .login-form-logo .login-logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(145deg, #0E2F45 0%, #0A5068 100%);
+      border-radius: 13px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(10,42,60,.4);
+      border: 1.5px solid rgba(255,255,255,.08);
+      flex-shrink: 0;
+    }
+    .login-form-logo-text {
+      font-size: 26px; font-weight: 900; letter-spacing: -1px;
+      color: var(--navy);
+    }
+    .login-form-logo-text em { font-style: normal; color: #25B870; }
     .login-hint span { color: var(--teal); font-weight: 600; cursor: pointer; }
 
     /* ── App Layout ───────────────────────────────────────── */
@@ -768,6 +788,135 @@
       .main-content { margin-left: 0; }
       .page-body { padding: 0; }
     }
+
+    /* ── Mobile Sidebar Overlay ───────────────────────────── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 99;
+    }
+    .sidebar-overlay.active { display: block; }
+
+    /* ── Hamburger ────────────────────────────────────────── */
+    .btn-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      margin-right: 12px;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .btn-hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: all .25s;
+    }
+
+    /* ── Tablet (≤900px) ──────────────────────────────────── */
+    @media (max-width: 900px) {
+      /* Sidebar becomes slide-in drawer */
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform .25s ease;
+        z-index: 100;
+      }
+      .sidebar.open { transform: translateX(0); }
+
+      .main-content { margin-left: 0; }
+
+      .btn-hamburger { display: flex; }
+
+      /* Login: hide left panel, full-width form */
+      .login-left { display: none; }
+      #screen-login { justify-content: center; }
+      .login-right {
+        width: 100%;
+        max-width: 480px;
+        padding: 40px 28px;
+      }
+
+      /* Stats: 2 columns */
+      .stats-row { grid-template-columns: 1fr 1fr; }
+
+      /* Dashboard: stack */
+      .dashboard-grid { grid-template-columns: 1fr; }
+
+      /* Grids: 2-col stays on tablet, 3-col becomes 2 */
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+
+      /* Topbar */
+      .topbar { padding: 0 16px; }
+      .page-body { padding: 20px 16px; }
+
+      /* Wizard steps: hide labels */
+      .step-label { display: none; }
+
+      /* History table: horizontal scroll */
+      .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .history-table { min-width: 560px; }
+
+      /* Search bar: full width */
+      .search-bar { width: 100%; }
+    }
+
+    /* ── Mobile (≤540px) ──────────────────────────────────── */
+    @media (max-width: 540px) {
+      /* Stats: single column */
+      .stats-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+      /* All 2/3 col grids become single column */
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+
+      /* Results hero: smaller text */
+      .results-label { font-size: 26px; }
+      .results-score { font-size: 38px; }
+
+      /* Topbar: tighter */
+      .topbar { height: 56px; padding: 0 12px; }
+      .topbar-title { font-size: 15px; }
+      .btn-new { padding: 7px 14px; font-size: 13px; }
+
+      /* Page body */
+      .page-body { padding: 14px 12px; }
+
+      /* Card body: tighter */
+      .card-body { padding: 16px; }
+      .card-header { padding: 14px 16px; }
+
+      /* Login */
+      .login-right { padding: 32px 20px; }
+
+      /* Form actions: stack */
+      .form-actions { flex-direction: column; gap: 10px; }
+      .form-actions button { width: 100%; }
+
+      /* Stat card: smaller value */
+      .stat-value { font-size: 24px; }
+
+      /* Topbar right: hide "New Diagnosis" text, show icon only */
+      .btn-new-text { display: none; }
+
+      /* Wizard steps: compact */
+      .wizard-steps { gap: 0; }
+      .step-circle { width: 26px; height: 26px; font-size: 11px; }
+
+      /* Table scrollable */
+      .history-table { min-width: 480px; }
+    }
+
+    /* ── Extra small (≤380px) ─────────────────────────────── */
+    @media (max-width: 380px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .stat-card { flex-direction: row; align-items: center; gap: 14px; padding: 14px 16px; }
+      .stat-icon { margin-bottom: 0; font-size: 20px; }
+    }
   </style>
 </head>
 <body>
@@ -808,6 +957,27 @@
   </div>
   <div class="login-right">
     <div class="login-form">
+      <div class="login-form-logo">
+        <div class="login-logo-icon">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:84%;height:84%;">
+            <path d="M24 38
+              C13 38 7 30 7 23
+              C7 16 11 10 17 8.5
+              C19 8 21 7 24 9
+              C27 7 29 8 31 8.5
+              C37 10 41 16 41 23
+              C41 30 35 38 24 38Z"
+              fill="white"/>
+            <line x1="24" y1="9" x2="24" y2="36" stroke="#0B2638" stroke-width="1.8" opacity="0.15" stroke-linecap="round"/>
+            <polyline
+              points="8,23 14,23 16,20 17.5,26 19,13 20.5,28 23,23 25,23 27,20 28.5,23 40,23"
+              stroke="#25B870" stroke-width="2.6"
+              stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="19" cy="13" r="2.5" fill="#25B870"/>
+          </svg>
+        </div>
+        <span class="login-form-logo-text">Go<em>Med</em></span>
+      </div>
       <h2>Welcome back</h2>
       <p>Sign in to access GoMed clinical decision support</p>
       <div class="form-group">
@@ -837,30 +1007,28 @@
      APP SHELL
 ═══════════════════════════════════════════════════ -->
 <div id="app" class="hidden">
+  <!-- Mobile sidebar overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
   <!-- Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">
         <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:78%;height:78%;">
-          <path d="M32 8 A18 18 0 1 0 31 36 L28 33 A14 14 0 1 1 29 11 Z" fill="#0B2638"/>
-          <path d="M24 11 C21 11 19 11 17 12 C12 14 10 18 10 24 C10 30 14 35 20 35 L24 35 Z" fill="#1A7878"/>
-          <path d="M24 11 C27 11 29 11 31 12 C36 14 38 18 38 24 C38 30 34 35 28 35 L24 35 Z" fill="#22A05A"/>
-          <path d="M24 11 C21 11 19 11 17 12 C12 14 10 18 10 24 C10 30 14 35 20 35 L28 35 C34 35 38 30 38 24 C38 18 36 14 31 12 C29 11 27 11 24 11 Z" stroke="#0B2638" stroke-width="1.6"/>
-          <line x1="24" y1="11" x2="24" y2="35" stroke="#0B2638" stroke-width="1.5" opacity="0.55"/>
-          <line x1="23" y1="20" x2="15.5" y2="20" stroke="white" stroke-width="1.3"/>
-          <line x1="15.5" y1="20" x2="11.5" y2="15" stroke="white" stroke-width="1.3"/>
-          <line x1="15.5" y1="20" x2="11" y2="23" stroke="white" stroke-width="1.3"/>
-          <line x1="15.5" y1="20" x2="13" y2="28" stroke="white" stroke-width="1.3"/>
-          <line x1="23" y1="27" x2="17" y2="27" stroke="white" stroke-width="1.3"/>
-          <line x1="17" y1="27" x2="13.5" y2="31.5" stroke="white" stroke-width="1.3"/>
-          <circle cx="15.5" cy="20"   r="1.6" fill="white" opacity="0.65"/>
-          <circle cx="17"   cy="27"   r="1.6" fill="white" opacity="0.65"/>
-          <circle cx="11.5" cy="15"   r="2.3" fill="#1A7878" stroke="white" stroke-width="1.3"/>
-          <circle cx="11"   cy="23"   r="2.3" fill="#1A7878" stroke="white" stroke-width="1.3"/>
-          <circle cx="13"   cy="28"   r="2.3" fill="#1A7878" stroke="white" stroke-width="1.3"/>
-          <circle cx="13.5" cy="31.5" r="2.3" fill="#1A7878" stroke="white" stroke-width="1.3"/>
-          <rect x="30"   y="17.5" width="4.5"  height="15"  rx="1.5" fill="white"/>
-          <rect x="26.5" y="22.5" width="11.5" height="4.5" rx="1.5" fill="white"/>
+          <path d="M24 38
+            C13 38 7 30 7 23
+            C7 16 11 10 17 8.5
+            C19 8 21 7 24 9
+            C27 7 29 8 31 8.5
+            C37 10 41 16 41 23
+            C41 30 35 38 24 38Z"
+            fill="white"/>
+          <line x1="24" y1="9" x2="24" y2="36" stroke="#0B2638" stroke-width="1.8" opacity="0.15" stroke-linecap="round"/>
+          <polyline
+            points="8,23 14,23 16,20 17.5,26 19,13 20.5,28 23,23 25,23 27,20 28.5,23 40,23"
+            stroke="#25B870" stroke-width="2.6"
+            stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="19" cy="13" r="2.5" fill="#25B870"/>
         </svg>
       </div>
       <span>Go<em>Med</em></span>
@@ -902,9 +1070,14 @@
   <!-- Main content -->
   <div class="main-content">
     <div class="topbar">
-      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div style="display:flex;align-items:center;">
+        <button class="btn-hamburger" id="btn-hamburger" onclick="openSidebar()" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+      </div>
       <div class="topbar-right">
-        <button class="btn-new" onclick="navigate('new')">+ New Diagnosis</button>
+        <button class="btn-new" onclick="navigate('new')">+ <span class="btn-new-text">New Diagnosis</span></button>
       </div>
     </div>
     <div class="page-body">
@@ -2764,7 +2937,7 @@ function renderHistory(filter='') {
     return;
   }
   hc.innerHTML = `
-    <table class="history-table">
+    <div class="table-wrap"><table class="history-table">
       <thead>
         <tr>
           <th>Patient</th>
@@ -2789,7 +2962,7 @@ function renderHistory(filter='') {
           </tr>
         `).join('')}
       </tbody>
-    </table>`;
+    </table></div>`;
 }
 
 function filterHistory() {
@@ -2815,6 +2988,24 @@ function showCriteria() {
 // Close modal on background click
 document.getElementById('criteria-modal').addEventListener('click', function(e) {
   if (e.target === this) this.classList.add('hidden');
+});
+
+// ── Mobile sidebar toggle ────────────────────────────────
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+// Close sidebar when a nav item is tapped on mobile
+document.querySelectorAll('.nav-item').forEach(function(el) {
+  el.addEventListener('click', function() {
+    if (window.innerWidth <= 900) closeSidebar();
+  });
 });
 </script>
 </body>
