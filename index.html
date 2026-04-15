@@ -1624,7 +1624,7 @@
           <div class="results-desc" id="r-desc">—</div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+        <div class="grid-2" style="margin-bottom:20px;">
           <div class="card">
             <div class="card-header"><div class="card-title">Positive Findings</div></div>
             <div class="card-body" id="r-findings"></div>
@@ -1685,11 +1685,11 @@
           </div>
         </div>
 
-        <div class="flex gap-4 no-print" style="margin-bottom:8px;">
+        <div class="flex gap-4 no-print" style="margin-bottom:8px;flex-wrap:wrap;">
           <button class="btn-new-case" onclick="generatePDF()" style="background:var(--navy);">⬇ Download PDF</button>
           <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
           <button class="btn-new-case" onclick="startNewCase()">+ New Case</button>
-          <button class="btn-back" onclick="navigate('history')" style="margin-left:auto;">View Case History</button>
+          <button class="btn-back" onclick="navigate('history')">View Case History</button>
         </div>
 
         <div class="alert alert-warn no-print">
@@ -1988,7 +1988,7 @@ function buildReview() {
   const extCount = [...document.querySelectorAll('input[name="extracns"]:checked')].length;
 
   document.getElementById('review-content').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="grid-2" style="gap:16px;">
       <div>
         <div class="section-header">Patient</div>
         <table style="width:100%;font-size:13px;border-collapse:collapse;">
