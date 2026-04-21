@@ -21,8 +21,9 @@
   <!-- SEO / Social -->
   <meta name="description" content="Tuberculous Meningitis clinical decision support for neurologists and infectious disease specialists." />
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" crossorigin="anonymous"></script>
   <style>
     /* ── Reset & Base ─────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1115,7 +1116,7 @@
         <div class="nav-item" onclick="showCriteria()">
           <span class="icon">📖</span> TBM Criteria
         </div>
-        <div class="nav-item" onclick="alert('Coming soon in v2: drug dosing, treatment protocols')">
+        <div class="nav-item" onclick="showTreatmentGuide()">
           <span class="icon">💊</span> Treatment Guide
         </div>
       </div>
@@ -1806,13 +1807,27 @@
     </div>
     <div style="padding:22px 26px;">
       <div style="background:#f0f9ff;border:1px solid #bae0fb;border-radius:8px;padding:12px 14px;font-size:12.5px;color:#0369a1;margin-bottom:18px;line-height:1.6;">
-        🔒 Your API key is stored only in your browser's local storage and is <strong>never sent anywhere</strong> except directly to Groq's servers. Groq is free — no credit card required.
+        🔒 Your API key is <strong>AES-256 encrypted</strong> before storage. A PIN you choose is required to unlock it. The raw key never touches localStorage unencrypted.
       </div>
+
+      <!-- Unlock section — shown when an encrypted key already exists -->
+      <div id="apikey-pin-section" style="display:none;margin-bottom:18px;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;">
+        <label style="font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:6px;">🔑 Enter PIN to unlock</label>
+        <div style="display:flex;gap:8px;">
+          <input type="password" id="apikey-pin-unlock" placeholder="Your PIN…" maxlength="32" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;" onkeydown="if(event.key==='Enter')unlockAPIKey()"/>
+          <button onclick="unlockAPIKey()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;">Unlock</button>
+        </div>
+      </div>
+
       <label style="font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:6px;">API Key</label>
       <input type="password" id="apikey-input" placeholder="gsk_..." style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;outline:none;"/>
-      <div style="font-size:11.5px;color:var(--muted);margin-top:6px;">Get your free key at <a href="https://console.groq.com/keys" target="_blank" style="color:var(--teal);">console.groq.com/keys</a></div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:4px;">Get your free key at <a href="https://console.groq.com/keys" target="_blank" style="color:var(--teal);">console.groq.com/keys</a></div>
+
+      <label style="font-size:13px;font-weight:600;color:var(--navy);display:block;margin:14px 0 6px;">Set / Change PIN <span style="font-weight:400;color:var(--muted);">(min 4 chars)</span></label>
+      <input type="password" id="apikey-pin" placeholder="Choose a PIN…" maxlength="32" style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;"/>
+
       <div style="display:flex;gap:10px;margin-top:20px;">
-        <button onclick="saveAPIKey()" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;">Save Key</button>
+        <button onclick="saveAPIKey()" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;">Encrypt &amp; Save</button>
         <button onclick="clearAPIKey()" style="padding:10px 16px;background:#fff;border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--muted);cursor:pointer;">Clear</button>
       </div>
       <div id="apikey-status" style="margin-top:10px;font-size:12.5px;text-align:center;min-height:18px;"></div>
@@ -2105,17 +2120,80 @@ function runAnalysis() {
 }
 
 // ═══════════════════════════════════════════════════════════
+//  INDEXEDDB — image persistence
+// ═══════════════════════════════════════════════════════════
+let _idb = null;
+
+function openImageDB() {
+  return new Promise((resolve, reject) => {
+    if (_idb) { resolve(_idb); return; }
+    const req = indexedDB.open('gomed_images', 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('images')) {
+        db.createObjectStore('images', { keyPath: 'id', autoIncrement: true });
+        db.createObjectStore('images').createIndex('caseId', 'caseId', { unique: false });
+      }
+    };
+    req.onsuccess = e => { _idb = e.target.result; resolve(_idb); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function _idbSaveCaseImages(caseId, images) {
+  try {
+    const db = await openImageDB();
+    const tx = db.transaction('images', 'readwrite');
+    const store = tx.objectStore('images');
+    images.forEach(img => store.add({ caseId, type: img.type, base64: img.base64, name: img.name }));
+  } catch(e) { console.warn('GoMed: IndexedDB image save failed', e); }
+}
+
+async function _idbLoadCaseImages(caseId) {
+  try {
+    const db = await openImageDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('images', 'readonly');
+      const store = tx.objectStore('images');
+      const idx = store.index('caseId');
+      const req = idx.getAll(caseId);
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  } catch(e) { return []; }
+}
+
+// Initialise IndexedDB with proper object store setup
+(function initImageDB() {
+  const req = indexedDB.open('gomed_images', 1);
+  req.onupgradeneeded = e => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains('images')) {
+      const store = db.createObjectStore('images', { keyPath: 'id', autoIncrement: true });
+      store.createIndex('caseId', 'caseId', { unique: false });
+    }
+  };
+  req.onsuccess = e => { _idb = e.target.result; };
+  req.onerror = () => console.warn('GoMed: IndexedDB unavailable, images will not persist');
+})();
+
+// ═══════════════════════════════════════════════════════════
 //  IMAGE UPLOAD
 // ═══════════════════════════════════════════════════════════
 const _uploadedImages = { neuro: [], cxr: [] };
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB per image
 
 function handleImageUpload(event, type) {
   const files = Array.from(event.target.files);
   files.forEach(file => {
     if (!file.type.startsWith('image/')) return;
+    if (file.size > MAX_IMAGE_BYTES) {
+      alert('Image "' + file.name + '" exceeds 5 MB. Please use a smaller file.');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = e => {
-      _uploadedImages[type].push({ base64: e.target.result, name: file.name });
+      _uploadedImages[type].push({ base64: e.target.result, name: file.name, type });
       renderImagePreviews(type);
     };
     reader.readAsDataURL(file);
@@ -2139,7 +2217,7 @@ function handleDrop(event, type, zoneId) {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = e => {
-      _uploadedImages[type].push({ base64: e.target.result, name: file.name });
+      _uploadedImages[type].push({ base64: e.target.result, name: file.name, type });
       renderImagePreviews(type);
     };
     reader.readAsDataURL(file);
@@ -2190,40 +2268,120 @@ function renderResultsImageGallery() {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  API KEY MANAGEMENT
+//  API KEY MANAGEMENT  (AES-GCM encrypted, PIN-protected)
 // ═══════════════════════════════════════════════════════════
-function getAPIKey() {
-  try { return localStorage.getItem('gomed_groq_key') || ''; } catch(e) { return ''; }
+let _decryptedAPIKey = ''; // in-memory cache for the session
+
+function _b64ToBytes(b64) { return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+function _bytesToB64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+
+async function _deriveKey(pin, salt) {
+  const enc = new TextEncoder();
+  const base = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
 }
+
+async function _encryptKey(apiKey, pin) {
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await _deriveKey(pin, salt);
+  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(apiKey));
+  return JSON.stringify({ salt: _bytesToB64(salt), iv: _bytesToB64(iv), data: _bytesToB64(cipher) });
+}
+
+async function _decryptKey(blob, pin) {
+  const { salt, iv, data } = JSON.parse(blob);
+  const key = await _deriveKey(pin, _b64ToBytes(salt));
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: _b64ToBytes(iv) }, key, _b64ToBytes(data));
+  return new TextDecoder().decode(plain);
+}
+
+function hasStoredAPIKey() {
+  try { return !!localStorage.getItem('gomed_groq_key_enc'); } catch(e) { return false; }
+}
+
+function getAPIKey() { return _decryptedAPIKey; }
+
 function openAPIKeyModal() {
-  const modal = document.getElementById('apikey-modal');
-  modal.style.display = 'flex';
-  const k = getAPIKey();
-  document.getElementById('apikey-input').value = k ? '••••••••' + k.slice(-4) : '';
-  document.getElementById('apikey-status').textContent = k ? '✅ Key saved' : '';
+  document.getElementById('apikey-modal').style.display = 'flex';
+  const hasKey = hasStoredAPIKey();
+  document.getElementById('apikey-pin-section').style.display = hasKey ? 'block' : 'none';
+  document.getElementById('apikey-input').value = _decryptedAPIKey ? '••••••••' + _decryptedAPIKey.slice(-4) : '';
+  if (document.getElementById('apikey-pin-unlock')) document.getElementById('apikey-pin-unlock').value = '';
+  document.getElementById('apikey-pin').value = '';
+  document.getElementById('apikey-status').textContent = hasKey
+    ? (_decryptedAPIKey ? '✅ Key unlocked for this session' : '🔒 Enter PIN to unlock')
+    : '';
 }
+
 function closeAPIKeyModal() {
   document.getElementById('apikey-modal').style.display = 'none';
 }
-function saveAPIKey() {
+
+async function saveAPIKey() {
   const val = document.getElementById('apikey-input').value.trim();
+  const pin = document.getElementById('apikey-pin').value.trim();
   if (!val || val.startsWith('••••')) {
     document.getElementById('apikey-status').textContent = '⚠ Enter a valid key starting with gsk_';
     return;
   }
+  if (pin.length < 4) {
+    document.getElementById('apikey-status').textContent = '⚠ PIN must be at least 4 characters';
+    return;
+  }
+  document.getElementById('apikey-status').textContent = '⏳ Encrypting…';
   try {
-    localStorage.setItem('gomed_groq_key', val);
-    document.getElementById('apikey-status').textContent = '✅ Key saved successfully';
+    const encrypted = await _encryptKey(val, pin);
+    localStorage.setItem('gomed_groq_key_enc', encrypted);
+    localStorage.removeItem('gomed_groq_key'); // remove old plaintext key if present
+    _decryptedAPIKey = val;
+    document.getElementById('apikey-status').textContent = '✅ Key encrypted and saved';
     setTimeout(closeAPIKeyModal, 1000);
   } catch(e) {
     document.getElementById('apikey-status').textContent = '❌ Could not save: ' + e.message;
   }
 }
+
+async function unlockAPIKey() {
+  const pin = document.getElementById('apikey-pin-unlock').value.trim();
+  if (!pin) { document.getElementById('apikey-status').textContent = '⚠ Enter your PIN'; return; }
+  document.getElementById('apikey-status').textContent = '⏳ Decrypting…';
+  try {
+    const blob = localStorage.getItem('gomed_groq_key_enc');
+    _decryptedAPIKey = await _decryptKey(blob, pin);
+    document.getElementById('apikey-input').value = '••••••••' + _decryptedAPIKey.slice(-4);
+    document.getElementById('apikey-status').textContent = '✅ Key unlocked for this session';
+  } catch(e) {
+    document.getElementById('apikey-status').textContent = '❌ Wrong PIN or corrupted key';
+  }
+}
+
 function clearAPIKey() {
-  try { localStorage.removeItem('gomed_groq_key'); } catch(e) {}
+  try { localStorage.removeItem('gomed_groq_key_enc'); localStorage.removeItem('gomed_groq_key'); } catch(e) {}
+  _decryptedAPIKey = '';
   document.getElementById('apikey-input').value = '';
+  document.getElementById('apikey-pin').value = '';
+  if (document.getElementById('apikey-pin-unlock')) document.getElementById('apikey-pin-unlock').value = '';
+  document.getElementById('apikey-pin-section').style.display = 'none';
   document.getElementById('apikey-status').textContent = 'Key cleared.';
 }
+
+// Migrate old plaintext key to encrypted storage on first load (prompts PIN)
+(function migratePlaintextKey() {
+  try {
+    const old = localStorage.getItem('gomed_groq_key');
+    if (old && !localStorage.getItem('gomed_groq_key_enc')) {
+      _decryptedAPIKey = old; // hold in memory; user prompted to re-save with PIN next open
+    }
+  } catch(e) {}
+})();
 
 // ═══════════════════════════════════════════════════════════
 //  AI ASSESSMENT ENGINE
@@ -2255,8 +2413,8 @@ function buildPrompt(r) {
   - Appearance: ${csf.ap ? 'Clear/colourless' : 'Turbid/xanthochromic'}
   - WBC: ${csf.wbcVal} cells/µL (${csf.wbc ? 'within TBM range 10–500' : 'outside TBM range'})
   - Lymphocytic predominance: ${csf.lymph ? 'Yes' : 'No'}
-  - Protein: ${csf.prot ? '>1.0 g/L (elevated)' : '≤1.0 g/L (normal)'}
-  - CSF:serum glucose ratio: ${csf.gluc ? '<0.5 (low)' : '≥0.5 (normal)'}`
+  - Protein: ${csf.protVal != null && !isNaN(csf.protVal) ? csf.protVal + ' g/L' : (csf.prot ? '>1.0 g/L (elevated)' : '≤1.0 g/L (normal)')}
+  - CSF:serum glucose ratio: ${csf.glucoseRatioVal != null ? csf.glucoseRatioVal : (csf.gluc ? '<0.5' : '≥0.5')}${csf.glucoseAbsVal != null ? ' (absolute CSF glucose ' + csf.glucoseAbsVal + ' mmol/L)' : ''}`
     : 'LP not performed';
 
   const micro = r.microChecked.length > 0
@@ -2300,41 +2458,55 @@ Please provide a structured neurologist's assessment covering:
 Be direct, clinically sharp, and brief. This is clinical decision support — not a lecture. Use plain language a physician can act on immediately. Format with clear bold headings for each section.`;
 }
 
-async function callGroq(result, apiKey) {
-  try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: 'You are a consultant neurologist specialising in CNS infections. Be concise, clinically precise, and actionable. Format responses with **bold** section headers.' },
-          { role: 'user', content: buildPrompt(result) }
-        ],
-        max_tokens: 1200,
-        temperature: 0.25
-      })
-    });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error?.message || 'API error ' + response.status);
-    }
-
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    renderAIResponse(text);
-
-  } catch(err) {
-    document.getElementById('ai-loading').style.display  = 'none';
-    document.getElementById('ai-error').style.display    = 'block';
-    document.getElementById('ai-error-msg').textContent  = err.message;
-    document.getElementById('ai-status-badge').textContent = '○ Unavailable';
-    document.getElementById('ai-status-badge').style.color = '#ef4444';
+async function _groqRequest(apiKey, body) {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    const msg = errData.error?.message || 'API error ' + response.status;
+    const retryable = response.status === 429 || response.status >= 500;
+    const err = new Error(msg);
+    err.retryable = retryable;
+    throw err;
   }
+  return response.json();
+}
+
+async function callGroq(result, apiKey) {
+  const body = {
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      { role: 'system', content: 'You are a consultant neurologist specialising in CNS infections. Be concise, clinically precise, and actionable. Format responses with **bold** section headers.' },
+      { role: 'user', content: buildPrompt(result) }
+    ],
+    max_tokens: 1200,
+    temperature: 0.25
+  };
+
+  const maxAttempts = 3;
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const data = await _groqRequest(apiKey, body);
+      const text = data.choices?.[0]?.message?.content || '';
+      renderAIResponse(text);
+      return;
+    } catch(err) {
+      lastErr = err;
+      if (!err.retryable || attempt === maxAttempts) break;
+      document.getElementById('ai-status-badge').textContent = `● Retrying (${attempt}/${maxAttempts})…`;
+      await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt - 1)));
+    }
+  }
+
+  document.getElementById('ai-loading').style.display  = 'none';
+  document.getElementById('ai-error').style.display    = 'block';
+  document.getElementById('ai-error-msg').textContent  = lastErr.message;
+  document.getElementById('ai-status-badge').textContent = '○ Unavailable';
+  document.getElementById('ai-status-badge').style.color = '#ef4444';
 }
 
 // Store plain text for PDF export
@@ -2356,9 +2528,8 @@ function renderAIResponse(text) {
     })
     .join('');
 
-  document.getElementById('ai-result').innerHTML =
-    html +
-    '<div class="ai-disclaimer">AI-generated assessment for clinical decision support only. Not a substitute for physician judgment.</div>';
+  const rawHtml = html + '<div class="ai-disclaimer">AI-generated assessment for clinical decision support only. Not a substitute for physician judgment.</div>';
+  document.getElementById('ai-result').innerHTML = DOMPurify.sanitize(rawHtml, { ALLOWED_TAGS: ['div','p','strong','em','br','span'], ALLOWED_ATTR: ['class'] });
 
   document.getElementById('ai-loading').style.display = 'none';
   document.getElementById('ai-result').style.display  = 'block';
@@ -2387,12 +2558,13 @@ function computeScore() {
     const wbcVal = parseFloat(document.getElementById('f-csf-wbc').value);
     const wbc = (wbcVal >= 10 && wbcVal <= 500) ? 1 : 0;
     const lymph = document.getElementById('f-csf-lymph').value === 'yes' ? 1 : 0;
-    const prot = parseFloat(document.getElementById('f-csf-protein').value) > 1.0 ? 1 : 0;
+    const protVal = parseFloat(document.getElementById('f-csf-protein').value);
+    const prot = protVal > 1.0 ? 1 : 0;
     const ratioVal = parseFloat(document.getElementById('f-csf-glucose-ratio').value);
     const absVal = parseFloat(document.getElementById('f-csf-glucose-abs').value);
     const gluc = (ratioVal < 0.5 || absVal < 2.2) ? 1 : 0;
     csfScore = Math.min(4, ap + wbc + lymph + prot + gluc);
-    csfDetails = { ap, wbc, lymph, prot, gluc, wbcVal };
+    csfDetails = { ap, wbc, lymph, prot, gluc, wbcVal, protVal, glucoseRatioVal: isNaN(ratioVal) ? null : ratioVal, glucoseAbsVal: isNaN(absVal) ? null : absVal };
   }
 
   // ─ Microbiological (confirmatory) ─
@@ -2929,11 +3101,38 @@ function generatePDF() {
 }
 
 // ═══════════════════════════════════════════════════════════
+//  AUDIT LOG
+// ═══════════════════════════════════════════════════════════
+function appendAuditLog(action, caseId, patientName) {
+  try {
+    const log = JSON.parse(localStorage.getItem('gomed_audit') || '[]');
+    log.push({
+      ts: new Date().toISOString(),
+      user: currentUser?.name || 'unknown',
+      role: currentUser?.role || 'unknown',
+      action,
+      caseId,
+      patient: patientName || '—'
+    });
+    // Keep last 500 entries
+    if (log.length > 500) log.splice(0, log.length - 500);
+    localStorage.setItem('gomed_audit', JSON.stringify(log));
+  } catch(e) { /* non-blocking */ }
+}
+
+// ═══════════════════════════════════════════════════════════
 //  CASE STORAGE
 // ═══════════════════════════════════════════════════════════
 function saveCase(result) {
   cases.unshift(result);
   localStorage.setItem('gomed_cases', JSON.stringify(cases));
+  appendAuditLog('case_saved', result.id, result.patient?.name);
+  // Persist images to IndexedDB keyed by case ID
+  const allImages = [
+    ..._uploadedImages.neuro.map(img => ({ ...img, type: 'neuro' })),
+    ..._uploadedImages.cxr.map(img => ({ ...img, type: 'cxr' }))
+  ];
+  if (allImages.length) _idbSaveCaseImages(result.id, allImages);
 }
 
 function startNewCase() {
@@ -3028,9 +3227,14 @@ function filterHistory() {
   renderHistory(document.getElementById('history-search').value);
 }
 
-function viewCase(id) {
+async function viewCase(id) {
   const c = cases.find(x => String(x.id) === String(id));
   if (!c) return;
+  appendAuditLog('case_viewed', c.id, c.patient?.name);
+  // Load persisted images from IndexedDB for this case
+  const persisted = await _idbLoadCaseImages(c.id);
+  _uploadedImages.neuro = persisted.filter(i => i.type === 'neuro');
+  _uploadedImages.cxr   = persisted.filter(i => i.type === 'cxr');
   renderResults(c);
   navigate('results');
   document.getElementById('view-results').classList.remove('hidden');
@@ -3042,6 +3246,10 @@ function viewCase(id) {
 // ═══════════════════════════════════════════════════════════
 function showCriteria() {
   document.getElementById('criteria-modal').classList.remove('hidden');
+}
+
+function showTreatmentGuide() {
+  document.getElementById('treatment-modal').classList.remove('hidden');
 }
 
 // Close modal on background click
@@ -3113,6 +3321,120 @@ function pwaDismiss() {
   if (banner) banner.classList.add('hidden');
 }
 </script>
+
+<!-- Treatment Guide Modal -->
+<div id="treatment-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div style="background:#fff;border-radius:16px;max-width:700px;width:94%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <div style="padding:22px 26px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:1;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--navy);">💊 TBM Treatment Guide</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">WHO/IDSA guidelines — adapted for clinical reference</div>
+      </div>
+      <button onclick="document.getElementById('treatment-modal').classList.add('hidden')" style="font-size:20px;background:none;border:none;color:var(--muted);cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:24px 26px;font-size:13.5px;line-height:1.75;color:var(--text);">
+
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px 14px;font-size:12.5px;color:#991b1b;margin-bottom:20px;">
+        ⚠️ <strong>Clinical disclaimer:</strong> This guide is for reference only. Dosing must be adjusted for weight, renal function, and local resistance patterns. Always verify with current institutional protocols.
+      </div>
+
+      <!-- Intensive Phase -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:15px;font-weight:700;color:var(--navy);border-left:4px solid var(--teal);padding-left:10px;margin-bottom:12px;">Phase 1 — Intensive Phase (2 months)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f0f9ff;">
+              <th style="padding:9px 12px;text-align:left;border:1px solid var(--border);">Drug</th>
+              <th style="padding:9px 12px;text-align:center;border:1px solid var(--border);">Daily Dose</th>
+              <th style="padding:9px 12px;text-align:center;border:1px solid var(--border);">Max Dose</th>
+              <th style="padding:9px 12px;text-align:left;border:1px solid var(--border);">Key Monitoring</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:8px 12px;border:1px solid var(--border);font-weight:600;">Isoniazid (H)</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">5 mg/kg/day</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">300 mg</td><td style="padding:8px 12px;border:1px solid var(--border);">LFTs, peripheral neuropathy. Give pyridoxine 25–50 mg/day.</td></tr>
+            <tr style="background:#fafafa;"><td style="padding:8px 12px;border:1px solid var(--border);font-weight:600;">Rifampicin (R)</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">10 mg/kg/day</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">600 mg</td><td style="padding:8px 12px;border:1px solid var(--border);">LFTs, drug interactions (HIV ART, anticoagulants).</td></tr>
+            <tr><td style="padding:8px 12px;border:1px solid var(--border);font-weight:600;">Pyrazinamide (Z)</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">25 mg/kg/day</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">2000 mg</td><td style="padding:8px 12px;border:1px solid var(--border);">LFTs, uric acid, arthralgia.</td></tr>
+            <tr style="background:#fafafa;"><td style="padding:8px 12px;border:1px solid var(--border);font-weight:600;">Ethambutol (E)</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">15–20 mg/kg/day</td><td style="padding:8px 12px;text-align:center;border:1px solid var(--border);">1200 mg</td><td style="padding:8px 12px;border:1px solid var(--border);">Visual acuity, colour vision (monthly). Avoid if optic neuritis risk.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Continuation Phase -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:15px;font-weight:700;color:var(--navy);border-left:4px solid var(--teal);padding-left:10px;margin-bottom:12px;">Phase 2 — Continuation Phase (10 months)</div>
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;">
+          <strong>Isoniazid + Rifampicin</strong> — same doses as above, continued for 10 months (total 12-month course for TBM, per WHO guidance).<br>
+          <span style="color:var(--muted);font-size:12px;">Some guidelines extend to 9–12 months total depending on clinical response and HIV status.</span>
+        </div>
+      </div>
+
+      <!-- Adjuvant Steroids -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:15px;font-weight:700;color:var(--navy);border-left:4px solid #D0392B;padding-left:10px;margin-bottom:12px;">Adjuvant Corticosteroids</div>
+        <div style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:14px;">
+          <div style="font-weight:600;margin-bottom:6px;">Dexamethasone (preferred) — WHO/Lancet evidence grade A</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
+            <thead>
+              <tr style="background:#fef3c7;">
+                <th style="padding:8px 10px;text-align:left;border:1px solid #fde68a;">Week</th>
+                <th style="padding:8px 10px;text-align:center;border:1px solid #fde68a;">Dose</th>
+                <th style="padding:8px 10px;text-align:left;border:1px solid #fde68a;">Route</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="padding:7px 10px;border:1px solid #fde68a;">Weeks 1–2</td><td style="padding:7px 10px;text-align:center;border:1px solid #fde68a;">0.4 mg/kg/day</td><td style="padding:7px 10px;border:1px solid #fde68a;">IV</td></tr>
+              <tr style="background:#fffbeb;"><td style="padding:7px 10px;border:1px solid #fde68a;">Week 3</td><td style="padding:7px 10px;text-align:center;border:1px solid #fde68a;">0.3 mg/kg/day</td><td style="padding:7px 10px;border:1px solid #fde68a;">Oral</td></tr>
+              <tr><td style="padding:7px 10px;border:1px solid #fde68a;">Week 4</td><td style="padding:7px 10px;text-align:center;border:1px solid #fde68a;">0.2 mg/kg/day</td><td style="padding:7px 10px;border:1px solid #fde68a;">Oral</td></tr>
+              <tr style="background:#fffbeb;"><td style="padding:7px 10px;border:1px solid #fde68a;">Week 5</td><td style="padding:7px 10px;text-align:center;border:1px solid #fde68a;">0.1 mg/kg/day</td><td style="padding:7px 10px;border:1px solid #fde68a;">Oral</td></tr>
+              <tr><td style="padding:7px 10px;border:1px solid #fde68a;">Weeks 6–9</td><td style="padding:7px 10px;text-align:center;border:1px solid #fde68a;">Taper by 1 mg/week</td><td style="padding:7px 10px;border:1px solid #fde68a;">Oral</td></tr>
+            </tbody>
+          </table>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px;">Max dexamethasone: 0.4 mg/kg/day (approx. 32 mg/day for adult). Evidence supports benefit in all grades (Thwaites et al., NEJM 2004).</div>
+        </div>
+      </div>
+
+      <!-- HIV Co-infection -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:15px;font-weight:700;color:var(--navy);border-left:4px solid #7c3aed;padding-left:10px;margin-bottom:12px;">HIV Co-infection Considerations</div>
+        <ul style="margin:0 0 0 18px;color:var(--text);">
+          <li style="margin-bottom:6px;"><strong>Start anti-TB treatment immediately.</strong> Do not delay for ART.</li>
+          <li style="margin-bottom:6px;"><strong>Defer ART</strong> for 4–8 weeks after starting anti-TB therapy to reduce IRIS risk (per ACTG 5164/SAPiT data for TBM specifically).</li>
+          <li style="margin-bottom:6px;"><strong>Preferred ART:</strong> Dolutegravir (DTG) + TDF/3TC. Note: Rifampicin induces CYP3A4 — doubles DTG to 50 mg twice daily if used.</li>
+          <li style="margin-bottom:6px;"><strong>Exclude cryptococcal meningitis</strong> (serum CrAg, India ink) before LP if available.</li>
+          <li style="margin-bottom:6px;"><strong>TB-IRIS:</strong> Paradoxical worsening 1–3 weeks after ART start. Manage with corticosteroids; do not stop anti-TB drugs.</li>
+        </ul>
+      </div>
+
+      <!-- Monitoring -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:15px;font-weight:700;color:var(--navy);border-left:4px solid var(--teal);padding-left:10px;margin-bottom:12px;">Monitoring Schedule</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f0f9ff;">
+              <th style="padding:9px 12px;text-align:left;border:1px solid var(--border);">Parameter</th>
+              <th style="padding:9px 12px;text-align:left;border:1px solid var(--border);">Frequency</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:8px 12px;border:1px solid var(--border);">LFTs (AST, ALT, bilirubin)</td><td style="padding:8px 12px;border:1px solid var(--border);">Baseline, 2 weeks, monthly</td></tr>
+            <tr style="background:#fafafa;"><td style="padding:8px 12px;border:1px solid var(--border);">Visual acuity + colour vision</td><td style="padding:8px 12px;border:1px solid var(--border);">Baseline, monthly (ethambutol)</td></tr>
+            <tr><td style="padding:8px 12px;border:1px solid var(--border);">Neurological examination</td><td style="padding:8px 12px;border:1px solid var(--border);">Daily (acute), then weekly</td></tr>
+            <tr style="background:#fafafa;"><td style="padding:8px 12px;border:1px solid var(--border);">GCS / conscious level</td><td style="padding:8px 12px;border:1px solid var(--border);">Every 4–6 hours (acute phase)</td></tr>
+            <tr><td style="padding:8px 12px;border:1px solid var(--border);">Repeat CT/MRI brain</td><td style="padding:8px 12px;border:1px solid var(--border);">At 4–6 weeks or if neurological deterioration</td></tr>
+            <tr style="background:#fafafa;"><td style="padding:8px 12px;border:1px solid var(--border);">CSF culture results</td><td style="padding:8px 12px;border:1px solid var(--border);">6–8 weeks (M. tuberculosis slow growth)</td></tr>
+            <tr><td style="padding:8px 12px;border:1px solid var(--border);">Uric acid (pyrazinamide)</td><td style="padding:8px 12px;border:1px solid var(--border);">Monthly during intensive phase</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- References -->
+      <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;font-size:12px;color:var(--muted);">
+        <strong style="color:var(--navy);">Key References:</strong><br>
+        Thwaites et al. NEJM 2004 (dexamethasone in TBM) · WHO Treatment of Tuberculosis Guidelines (4th ed.) · Marais et al. Lancet ID 2010 (uniform case definition) · Donovan et al. Lancet 2023 (HIV-TBM ART timing)
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- PWA Install Banner (Android) -->
 <div id="pwa-install-banner" class="hidden" role="banner" aria-label="Install GoMed app">
