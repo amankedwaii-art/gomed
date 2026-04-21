@@ -1036,55 +1036,19 @@
         <span class="login-form-logo-text">Go<em>Med</em></span>
       </div>
 
-      <!-- ── LOGIN PANEL ── -->
       <div id="auth-login">
-        <h2>Welcome back</h2>
-        <p>Sign in to your GoMed account</p>
+        <h2>Welcome</h2>
+        <p>Sign in to access GoMed clinical decision support</p>
         <div id="login-error" style="display:none;background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px;"></div>
         <div class="form-group">
-          <label>Email Address</label>
-          <input type="email" id="login-email" placeholder="dr.name@hospital.org" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()"/>
+          <label>Username</label>
+          <input type="text" id="login-email" placeholder="Username" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"/>
         </div>
         <div class="form-group">
           <label>Password</label>
           <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
         </div>
         <button id="btn-login" class="btn-primary" onclick="doLogin()">Sign In to GoMed</button>
-        <div class="login-hint">No account? <span onclick="showAuthPanel('register')">Create one →</span></div>
-      </div>
-
-      <!-- ── REGISTER PANEL ── -->
-      <div id="auth-register" style="display:none;">
-        <h2>Create account</h2>
-        <p>Join GoMed — clinical decision support for TBM</p>
-        <div id="register-error" style="display:none;background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px;"></div>
-        <div class="form-group">
-          <label>Full Name</label>
-          <input type="text" id="reg-name" placeholder="Dr. Jane Smith" autocomplete="name"/>
-        </div>
-        <div class="form-group">
-          <label>Email Address</label>
-          <input type="email" id="reg-email" placeholder="dr.name@hospital.org" autocomplete="email"/>
-        </div>
-        <div class="form-group">
-          <label>Role</label>
-          <select id="reg-role">
-            <option value="neurologist">Neurologist</option>
-            <option value="infectious">Infectious Disease Specialist</option>
-            <option value="resident">Neurology Resident</option>
-            <option value="paramedic">Paramedic / Nurse</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Password <span style="font-weight:400;color:var(--muted);font-size:12px;">(min 8 characters)</span></label>
-          <input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password"/>
-        </div>
-        <div class="form-group">
-          <label>Confirm Password</label>
-          <input type="password" id="reg-confirm" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()"/>
-        </div>
-        <button id="btn-register" class="btn-primary" onclick="doRegister()">Create Account</button>
-        <div class="login-hint">Already have an account? <span onclick="showAuthPanel('login')">Sign in →</span></div>
       </div>
 
     </div>
@@ -1924,136 +1888,55 @@ let scores = {
 };
 
 // ═══════════════════════════════════════════════════════════
-//  AUTH  — PBKDF2 hashed passwords, localStorage user store
+//  AUTH  — shared access credential (MVP gate)
 // ═══════════════════════════════════════════════════════════
-const AUTH_ITERATIONS = 200000;
-const AUTH_STORAGE_KEY = 'gomed_users';
 const SESSION_KEY = 'gomed_session';
 
-function _authB64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); }
-function _authFromB64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
-
-async function _hashPassword(password, salt) {
-  const enc = new TextEncoder();
-  const base = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations: AUTH_ITERATIONS, hash: 'SHA-256' },
-    base, 256
-  );
-  return _authB64(bits);
-}
-
-function _loadUsers() {
-  try { return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '[]'); } catch(e) { return []; }
-}
-function _saveUsers(users) {
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(users));
-}
-
-function _setSession(user) {
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email: user.email, name: user.name, role: user.role }));
-}
 function _getSession() {
   try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch(e) { return null; }
 }
 function _clearSession() { sessionStorage.removeItem(SESSION_KEY); }
 
 function _applyUser(user) {
-  currentUser = { email: user.email, name: user.name, role: user.role };
+  currentUser = { name: user.name, role: user.role };
   document.getElementById('user-name').textContent = user.name;
-  const roleLabels = { neurologist: 'Neurologist', infectious: 'Infectious Disease', resident: 'Neurology Resident', paramedic: 'Paramedic / Nurse' };
-  document.getElementById('user-role').textContent = roleLabels[user.role] || user.role;
-  document.getElementById('user-avatar').textContent = user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('user-role').textContent = user.role;
+  document.getElementById('user-avatar').textContent = user.name.slice(0, 2).toUpperCase();
   document.getElementById('screen-login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   navigate('dashboard');
   updateDashboard();
 }
 
-function _setAuthError(id, msg) {
-  const el = document.getElementById(id);
+function _setAuthError(msg) {
+  const el = document.getElementById('login-error');
   if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
 }
 
-async function doLogin() {
-  const email = (document.getElementById('login-email').value || '').trim().toLowerCase();
+function doLogin() {
+  const username = (document.getElementById('login-email').value || '').trim();
   const password = document.getElementById('login-password').value;
-  _setAuthError('login-error', '');
+  _setAuthError('');
 
-  if (!email || !password) { _setAuthError('login-error', 'Please enter your email and password.'); return; }
+  if (!username || !password) { _setAuthError('Please enter your username and password.'); return; }
+  if (username !== 'Admin' || password !== '123') { _setAuthError('Incorrect username or password.'); return; }
 
-  const users = _loadUsers();
-  const user = users.find(u => u.email === email);
-  if (!user) { _setAuthError('login-error', 'No account found with that email.'); return; }
-
-  document.getElementById('btn-login').textContent = 'Signing in…';
-  document.getElementById('btn-login').disabled = true;
-
-  try {
-    const hash = await _hashPassword(password, _authFromB64(user.salt));
-    if (hash !== user.passwordHash) {
-      _setAuthError('login-error', 'Incorrect password.');
-      return;
-    }
-    _setSession(user);
-    appendAuditLog('login', null, user.name);
-    _applyUser(user);
-  } catch(e) {
-    _setAuthError('login-error', 'Login failed: ' + e.message);
-  } finally {
-    document.getElementById('btn-login').textContent = 'Sign In';
-    document.getElementById('btn-login').disabled = false;
-  }
-}
-
-async function doRegister() {
-  const name     = (document.getElementById('reg-name').value || '').trim();
-  const email    = (document.getElementById('reg-email').value || '').trim().toLowerCase();
-  const password = document.getElementById('reg-password').value;
-  const confirm  = document.getElementById('reg-confirm').value;
-  const role     = document.getElementById('reg-role').value;
-  _setAuthError('register-error', '');
-
-  if (!name || !email || !password) { _setAuthError('register-error', 'All fields are required.'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { _setAuthError('register-error', 'Enter a valid email address.'); return; }
-  if (password.length < 8) { _setAuthError('register-error', 'Password must be at least 8 characters.'); return; }
-  if (password !== confirm) { _setAuthError('register-error', 'Passwords do not match.'); return; }
-
-  const users = _loadUsers();
-  if (users.find(u => u.email === email)) { _setAuthError('register-error', 'An account with this email already exists.'); return; }
-
-  document.getElementById('btn-register').textContent = 'Creating account…';
-  document.getElementById('btn-register').disabled = true;
-
-  try {
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const passwordHash = await _hashPassword(password, salt);
-    const user = { email, name, role, passwordHash, salt: _authB64(salt), createdAt: new Date().toISOString() };
-    users.push(user);
-    _saveUsers(users);
-    _setSession(user);
-    appendAuditLog('register', null, name);
-    _applyUser(user);
-  } catch(e) {
-    _setAuthError('register-error', 'Registration failed: ' + e.message);
-  } finally {
-    document.getElementById('btn-register').textContent = 'Create Account';
-    document.getElementById('btn-register').disabled = false;
-  }
+  const user = { name: 'Admin', role: 'Clinician' };
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
+  _applyUser(user);
 }
 
 function doLogout() {
-  appendAuditLog('logout', null, currentUser?.name);
   _clearSession();
   currentUser = null;
   document.getElementById('screen-login').classList.remove('hidden');
   document.getElementById('app').classList.add('hidden');
-  showAuthPanel('login');
 }
 
-function showAuthPanel(panel) {
-  document.getElementById('auth-login').style.display  = panel === 'login'    ? 'block' : 'none';
-  document.getElementById('auth-register').style.display = panel === 'register' ? 'block' : 'none';
+function resumeSession() {
+  const s = _getSession();
+  if (s) _applyUser(s);
+}
 }
 
 function resumeSession() {
