@@ -24,6 +24,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <style>
     /* ── Reset & Base ─────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1872,7 +1873,60 @@
 // ═══════════════════════════════════════════════════════════
 let currentUser = null;
 let currentStep = 1;
-let cases = JSON.parse(localStorage.getItem('gomed_cases') || '[]');
+let cases = [];
+
+// ═══════════════════════════════════════════════════════════
+//  SUPABASE CLIENT
+// ═══════════════════════════════════════════════════════════
+const _SUPA_URL = 'https://qyuiqtadjfyvefzikoqp.supabase.co';
+const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5dWlxdGFkamZ5dmVmemlrb3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODcwMTEsImV4cCI6MjA5MjM2MzAxMX0.FIZkILfx3pfmkrOKamOXvMXTgr6PZ0iH6dy5m1MQk84';
+const db = window.supabase.createClient(_SUPA_URL, _SUPA_KEY);
+
+async function loadCasesFromCloud() {
+  try {
+    const { data, error } = await db.from('cases').select('data').order('created_at', { ascending: false });
+    if (error) throw error;
+    cases = (data || []).map(row => row.data);
+    localStorage.setItem('gomed_cases', JSON.stringify(cases)); // local backup
+  } catch(e) {
+    console.warn('GoMed: cloud load failed, falling back to localStorage', e.message);
+    cases = JSON.parse(localStorage.getItem('gomed_cases') || '[]');
+  }
+}
+
+async function saveCaseToCloud(result) {
+  try {
+    const { error } = await db.from('cases').upsert({
+      id: result.id,
+      date: result.date,
+      patient_name: result.patient?.name || '',
+      classification: result.classification,
+      color: result.color,
+      total_score: result.scores?.total || 0,
+      clinician: result.clinician || '',
+      data: result
+    });
+    if (error) throw error;
+    localStorage.setItem('gomed_cases', JSON.stringify(cases)); // keep backup in sync
+  } catch(e) {
+    console.warn('GoMed: cloud save failed, stored locally only', e.message);
+  }
+}
+
+async function migrateLocalCasesToCloud() {
+  try {
+    const local = JSON.parse(localStorage.getItem('gomed_cases') || '[]');
+    if (!local.length) return;
+    const cloudIds = new Set(cases.map(c => c.id));
+    const toMigrate = local.filter(c => !cloudIds.has(c.id));
+    if (!toMigrate.length) return;
+    console.log(`GoMed: migrating ${toMigrate.length} local case(s) to cloud…`);
+    for (const c of toMigrate) await saveCaseToCloud(c);
+    await loadCasesFromCloud();
+  } catch(e) {
+    console.warn('GoMed: migration failed', e.message);
+  }
+}
 
 // Scoring state
 let scores = {
@@ -1897,7 +1951,7 @@ function _getSession() {
 }
 function _clearSession() { sessionStorage.removeItem(SESSION_KEY); }
 
-function _applyUser(user) {
+async function _applyUser(user) {
   currentUser = { name: user.name, role: user.role };
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   setEl('user-name', user.name);
@@ -1908,6 +1962,10 @@ function _applyUser(user) {
   if (loginEl) loginEl.classList.add('hidden');
   if (appEl)   appEl.classList.remove('hidden');
   navigate('dashboard');
+  const rc = document.getElementById('recent-cases');
+  if (rc) rc.innerHTML = '<div class="empty-state"><p style="color:var(--muted);">Loading cases…</p></div>';
+  await loadCasesFromCloud();
+  await migrateLocalCasesToCloud();
   updateDashboard();
 }
 
@@ -1916,7 +1974,7 @@ function _setAuthError(msg) {
   if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
 }
 
-function doLogin() {
+async function doLogin() {
   try {
     const username = (document.getElementById('login-email').value || '').trim();
     const password = (document.getElementById('login-password').value || '').trim();
@@ -1927,7 +1985,7 @@ function doLogin() {
 
     const user = { name: 'Admin', role: 'Clinician' };
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    _applyUser(user);
+    await _applyUser(user);
   } catch(e) {
     _setAuthError('Error: ' + e.message);
   }
@@ -1942,7 +2000,7 @@ function doLogout() {
 
 function resumeSession() {
   const s = _getSession();
-  if (s) _applyUser(s);
+  if (s) _applyUser(s).catch(console.error);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3128,18 +3186,26 @@ function generatePDF() {
 // ═══════════════════════════════════════════════════════════
 function appendAuditLog(action, caseId, patientName) {
   try {
-    const log = JSON.parse(localStorage.getItem('gomed_audit') || '[]');
-    log.push({
+    const entry = {
       ts: new Date().toISOString(),
       user: currentUser?.name || 'unknown',
       role: currentUser?.role || 'unknown',
-      action,
-      caseId,
+      action, caseId,
       patient: patientName || '—'
-    });
-    // Keep last 500 entries
+    };
+    // Local backup
+    const log = JSON.parse(localStorage.getItem('gomed_audit') || '[]');
+    log.push(entry);
     if (log.length > 500) log.splice(0, log.length - 500);
     localStorage.setItem('gomed_audit', JSON.stringify(log));
+    // Cloud (non-blocking)
+    db.from('audit_log').insert({
+      user_name: entry.user,
+      role: entry.role,
+      action: entry.action,
+      case_id: caseId || null,
+      patient_name: entry.patient
+    }).then(() => {}).catch(() => {});
   } catch(e) { /* non-blocking */ }
 }
 
@@ -3148,9 +3214,9 @@ function appendAuditLog(action, caseId, patientName) {
 // ═══════════════════════════════════════════════════════════
 function saveCase(result) {
   cases.unshift(result);
-  localStorage.setItem('gomed_cases', JSON.stringify(cases));
+  localStorage.setItem('gomed_cases', JSON.stringify(cases)); // local backup
   appendAuditLog('case_saved', result.id, result.patient?.name);
-  // Persist images to IndexedDB keyed by case ID
+  saveCaseToCloud(result); // async, non-blocking
   const allImages = [
     ..._uploadedImages.neuro.map(img => ({ ...img, type: 'neuro' })),
     ..._uploadedImages.cxr.map(img => ({ ...img, type: 'cxr' }))
