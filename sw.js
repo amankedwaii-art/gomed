@@ -1,5 +1,5 @@
 // GoMed Service Worker — PWA offline support
-const CACHE_NAME = 'gomed-v1';
+const CACHE_NAME = 'gomed-v2';
 
 // App shell assets to pre-cache on install
 const PRECACHE_URLS = [
@@ -8,7 +8,8 @@ const PRECACHE_URLS = [
   '/manifest.json',
   '/icons/icon.svg',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js'
 ];
 
 // ── Install: pre-cache app shell ─────────────────────────────
@@ -19,7 +20,8 @@ self.addEventListener('install', event => {
       const local = ['/', '/index.html', '/manifest.json', '/icons/icon.svg'];
       const cdn = [
         'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-        'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
+        'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js'
       ];
       return cache.addAll(local).then(() =>
         Promise.allSettled(cdn.map(url => cache.add(url)))
