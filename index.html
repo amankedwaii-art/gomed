@@ -24,7 +24,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
   <style>
     /* ── Reset & Base ─────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1880,9 +1880,15 @@ let cases = [];
 // ═══════════════════════════════════════════════════════════
 const _SUPA_URL = 'https://qyuiqtadjfyvefzikoqp.supabase.co';
 const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5dWlxdGFkamZ5dmVmemlrb3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODcwMTEsImV4cCI6MjA5MjM2MzAxMX0.FIZkILfx3pfmkrOKamOXvMXTgr6PZ0iH6dy5m1MQk84';
-const db = window.supabase.createClient(_SUPA_URL, _SUPA_KEY);
+let db = null;
+try {
+  db = window.supabase.createClient(_SUPA_URL, _SUPA_KEY);
+} catch(e) {
+  console.warn('GoMed: Supabase client init failed', e.message);
+}
 
 async function loadCasesFromCloud() {
+  if (!db) { cases = JSON.parse(localStorage.getItem('gomed_cases') || '[]'); return; }
   try {
     const { data, error } = await db.from('cases').select('data').order('created_at', { ascending: false });
     if (error) throw error;
@@ -1895,6 +1901,7 @@ async function loadCasesFromCloud() {
 }
 
 async function saveCaseToCloud(result) {
+  if (!db) return;
   try {
     const { error } = await db.from('cases').upsert({
       id: result.id,
@@ -1914,6 +1921,7 @@ async function saveCaseToCloud(result) {
 }
 
 async function migrateLocalCasesToCloud() {
+  if (!db) return;
   try {
     const local = JSON.parse(localStorage.getItem('gomed_cases') || '[]');
     if (!local.length) return;
