@@ -1899,11 +1899,14 @@ function _clearSession() { sessionStorage.removeItem(SESSION_KEY); }
 
 function _applyUser(user) {
   currentUser = { name: user.name, role: user.role };
-  document.getElementById('user-name').textContent = user.name;
-  document.getElementById('user-role').textContent = user.role;
-  document.getElementById('user-avatar').textContent = user.name.slice(0, 2).toUpperCase();
-  document.getElementById('screen-login').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('user-name', user.name);
+  setEl('user-role', user.role);
+  setEl('user-avatar', (user.name || 'AD').slice(0, 2).toUpperCase());
+  const loginEl = document.getElementById('screen-login');
+  const appEl   = document.getElementById('app');
+  if (loginEl) loginEl.classList.add('hidden');
+  if (appEl)   appEl.classList.remove('hidden');
   navigate('dashboard');
   updateDashboard();
 }
@@ -1914,16 +1917,20 @@ function _setAuthError(msg) {
 }
 
 function doLogin() {
-  const username = (document.getElementById('login-email').value || '').trim();
-  const password = document.getElementById('login-password').value;
-  _setAuthError('');
+  try {
+    const username = (document.getElementById('login-email').value || '').trim();
+    const password = (document.getElementById('login-password').value || '').trim();
+    _setAuthError('');
 
-  if (!username || !password) { _setAuthError('Please enter your username and password.'); return; }
-  if (username !== 'Admin' || password !== '123') { _setAuthError('Incorrect username or password.'); return; }
+    if (!username || !password) { _setAuthError('Please enter your username and password.'); return; }
+    if (username.toLowerCase() !== 'admin' || password !== '123') { _setAuthError('Incorrect username or password.'); return; }
 
-  const user = { name: 'Admin', role: 'Clinician' };
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
-  _applyUser(user);
+    const user = { name: 'Admin', role: 'Clinician' };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
+    _applyUser(user);
+  } catch(e) {
+    _setAuthError('Error: ' + e.message);
+  }
 }
 
 function doLogout() {
