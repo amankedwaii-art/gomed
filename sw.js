@@ -45,8 +45,13 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Always go network for Groq API calls — never cache patient data
-  if (url.hostname === 'api.groq.com') {
+  // Always go network for external API calls — never cache patient data
+  if (
+    url.hostname === 'api.groq.com' ||
+    url.hostname === 'api.openai.com' ||
+    url.hostname === 'corsproxy.io' ||
+    url.hostname === 'api.anthropic.com'
+  ) {
     event.respondWith(fetch(event.request));
     return;
   }
