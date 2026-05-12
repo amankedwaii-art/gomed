@@ -1738,46 +1738,7 @@
           </div>
         </div>
 
-        <!-- ── MRI / Claude Analysis Card ──────────────── -->
-        <div class="card no-print" id="mri-card" style="margin-bottom:20px;border:1.5px solid #e0d6f4;">
-          <div class="card-header" style="background:linear-gradient(135deg,#1e0b38 0%,#4a0880 100%);border-radius:12px 12px 0 0;padding:14px 20px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div style="width:32px;height:32px;background:rgba(192,132,252,.18);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;">🧠</div>
-              <div>
-                <div style="font-size:14px;font-weight:700;color:#fff;">MRI / CT Neuroradiology Assessment</div>
-                <div style="font-size:11px;color:rgba(255,255,255,.55);">Claude Vision (claude-sonnet-4-6) — AI imaging analysis</div>
-              </div>
-            </div>
-            <div id="mri-status-badge" style="font-size:11px;background:rgba(192,132,252,.15);color:#c084fc;padding:4px 12px;border-radius:20px;font-weight:600;border:1px solid rgba(192,132,252,.3);">○ Standby</div>
-          </div>
-          <div class="card-body">
-            <div id="mri-loading" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 0;gap:14px;">
-              <div class="ai-pulse-row"><span></span><span></span><span></span><span></span><span></span></div>
-              <div style="font-size:13px;color:var(--muted);">Claude is analysing the neuroimaging…</div>
-            </div>
-            <div id="mri-result" style="display:none;font-size:13.5px;line-height:1.75;color:#1a2d3f;"></div>
-            <div id="mri-error" style="display:none;">
-              <div style="background:#fff5f5;border:1px solid #fcc;border-radius:8px;padding:14px 16px;font-size:13px;color:#c0392b;">
-                <strong>MRI analysis unavailable.</strong> <span id="mri-error-msg"></span><br>
-                <span style="color:var(--muted);font-size:12px;">Check your Claude API key in <button onclick="openAPIKeyModal()" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:12px;text-decoration:underline;padding:0;">Settings</button>.</span>
-              </div>
-            </div>
-            <div id="mri-noimages" style="display:block;text-align:center;padding:24px 0;">
-              <div style="font-size:28px;margin-bottom:10px;">🧠</div>
-              <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">No Imaging Uploaded</div>
-              <div style="font-size:13px;color:var(--muted);">Upload CT or MRI brain images in the Neuroimaging step to enable AI analysis.</div>
-            </div>
-            <div id="mri-nokey" style="display:none;text-align:center;padding:24px 0;">
-              <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Add your Claude API key to unlock AI-powered MRI neuroradiology assessment.</div>
-              <button onclick="openAPIKeyModal()" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:9px 22px;cursor:pointer;font-size:13px;font-weight:600;">⚙ Add Claude Key</button>
-            </div>
-            <div id="mri-analyze-btn-wrap" style="display:none;text-align:center;padding:16px 0;">
-              <button onclick="runMRIAnalysis()" style="background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff;border:none;border-radius:8px;padding:10px 28px;cursor:pointer;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:8px;">🧠 Analyze Images with Claude</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex gap-4 no-print" style="margin-bottom:8px;flex-wrap:wrap;">
+<div class="flex gap-4 no-print" style="margin-bottom:8px;flex-wrap:wrap;">
           <button class="btn-new-case" onclick="generatePDF()" style="background:var(--navy);">⬇ Download PDF</button>
           <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
           <button class="btn-new-case" onclick="startNewCase()">+ New Case</button>
@@ -1859,25 +1820,6 @@
       </div>
       <div id="apikey-status" style="margin-top:10px;font-size:12.5px;text-align:center;min-height:18px;"></div>
 
-      <div style="border-top:1px solid var(--border);margin:20px 0;"></div>
-
-      <!-- ── Claude API Key Section ── -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-        <div style="width:30px;height:30px;background:#faf5ff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;">🧠</div>
-        <div>
-          <div style="font-size:14px;font-weight:700;color:var(--navy);">Claude API Key <span style="font-size:10px;background:#ede9fe;color:#5b21b6;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:4px;">MRI / Claude</span></div>
-          <div style="font-size:11px;color:var(--muted);">Direct Claude Vision — MRI neuroradiology analysis</div>
-        </div>
-      </div>
-      <div style="background:#faf5ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 13px;font-size:12px;color:#6d28d9;margin-bottom:12px;line-height:1.6;">
-        🔒 Stored only in your browser. Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#7c3aed;font-weight:600;">console.anthropic.com</a> — Claude analyses your MRI images.
-      </div>
-      <input type="password" id="claude-apikey-input" placeholder="sk-ant-..." style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;outline:none;"/>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <button onclick="saveClaudeKey()" style="flex:1;background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;">Save Claude Key</button>
-        <button onclick="clearClaudeKey()" style="padding:9px 14px;background:#fff;border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;">Clear</button>
-      </div>
-      <div id="claude-apikey-status" style="margin-top:8px;font-size:12px;text-align:center;min-height:16px;"></div>
     </div>
   </div>
 </div>
@@ -2259,7 +2201,6 @@ function runAnalysis() { // eslint-disable-line no-unused-vars
     try { saveCase(result); } catch(e) {}
     updateDashboard();
     triggerAIAssessment(result);
-    triggerMRIAnalysis(result);
   } catch(e) {
     console.error('GoMed report error:', e);
     document.getElementById('r-label').textContent = 'Error generating report';
@@ -2467,32 +2408,6 @@ function openAPIKeyModal() {
   document.getElementById('apikey-status').textContent = hasKey
     ? (_decryptedAPIKey ? '✅ Key unlocked for this session' : '🔒 Enter PIN to unlock')
     : '';
-  const ck = getClaudeKey();
-  document.getElementById('claude-apikey-input').value = ck ? '••••••••' + ck.slice(-4) : '';
-  document.getElementById('claude-apikey-status').textContent = ck ? '✅ Claude key saved' : '';
-}
-
-function getClaudeKey() {
-  try { return localStorage.getItem('gomed_claude_key') || ''; } catch(e) { return ''; }
-}
-function saveClaudeKey() {
-  const val = document.getElementById('claude-apikey-input').value.trim();
-  if (!val || val.startsWith('••••')) {
-    document.getElementById('claude-apikey-status').textContent = '⚠ Enter a valid Claude API key';
-    return;
-  }
-  try {
-    localStorage.setItem('gomed_claude_key', val);
-    document.getElementById('claude-apikey-status').textContent = '✅ Claude key saved';
-    setTimeout(closeAPIKeyModal, 1000);
-  } catch(e) {
-    document.getElementById('claude-apikey-status').textContent = '❌ Could not save: ' + e.message;
-  }
-}
-function clearClaudeKey() {
-  try { localStorage.removeItem('gomed_claude_key'); } catch(e) {}
-  document.getElementById('claude-apikey-input').value = '';
-  document.getElementById('claude-apikey-status').textContent = 'Key cleared.';
 }
 
 function closeAPIKeyModal() {
@@ -2709,130 +2624,6 @@ function renderAIResponse(text) {
   document.getElementById('ai-result').style.display  = 'block';
   document.getElementById('ai-status-badge').textContent = '✓ Assessment Ready';
   document.getElementById('ai-status-badge').style.cssText = 'font-size:11px;background:rgba(37,184,112,.15);color:#25B870;padding:4px 12px;border-radius:20px;font-weight:600;border:1px solid rgba(37,184,112,.3);';
-}
-
-// ═══════════════════════════════════════════════════════════
-//  MRI / CLAUDE VISION ENGINE (direct Claude API via corsproxy.io)
-// ═══════════════════════════════════════════════════════════
-let _lastAnalysisResult = null;
-let _lastMRIText = '';
-
-function triggerMRIAnalysis(result) {
-  _lastAnalysisResult = result;
-  const allImages = [
-    ..._uploadedImages.neuro.map(img => ({ ...img, label: 'CT/MRI Brain' })),
-    ..._uploadedImages.cxr.map(img => ({ ...img, label: 'Chest X-Ray/CT' }))
-  ];
-  ['mri-loading','mri-result','mri-error','mri-noimages','mri-nokey','mri-analyze-btn-wrap'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.style.display = 'none';
-  });
-  document.getElementById('mri-status-badge').textContent = '○ Standby';
-  document.getElementById('mri-status-badge').style.cssText = 'font-size:11px;background:rgba(192,132,252,.15);color:#c084fc;padding:4px 12px;border-radius:20px;font-weight:600;border:1px solid rgba(192,132,252,.3);';
-  if (!allImages.length) {
-    document.getElementById('mri-noimages').style.display = 'block';
-    document.getElementById('mri-status-badge').textContent = '○ No Images';
-    return;
-  }
-  const key = getClaudeKey();
-  if (!key) {
-    document.getElementById('mri-nokey').style.display = 'block';
-    document.getElementById('mri-status-badge').textContent = '○ Key Required';
-    return;
-  }
-  document.getElementById('mri-loading').style.display = 'flex';
-  document.getElementById('mri-status-badge').textContent = '● Analysing…';
-  callClaude(allImages, result, key);
-}
-
-function runMRIAnalysis() {
-  const allImages = [
-    ..._uploadedImages.neuro.map(img => ({ ...img, label: 'CT/MRI Brain' })),
-    ..._uploadedImages.cxr.map(img => ({ ...img, label: 'Chest X-Ray/CT' }))
-  ];
-  const key = getClaudeKey();
-  if (!key || !allImages.length) return;
-  document.getElementById('mri-analyze-btn-wrap').style.display = 'none';
-  document.getElementById('mri-loading').style.display = 'flex';
-  document.getElementById('mri-status-badge').textContent = '● Analysing…';
-  callClaude(allImages, _lastAnalysisResult || {}, key);
-}
-
-function buildMRIPrompt(result) {
-  return `You are an expert neuroradiologist specialising in CNS infections and Tuberculous Meningitis (TBM).
-
-Patient: ${result.patient?.name || 'Unknown'}, ${result.patient?.age || '?'}yo, HIV: ${result.patient?.hiv || 'unknown'}
-TBM Marais Score: ${result.scores?.total ?? '?'}/20 — ${result.classification || 'Pending'}
-
-Analyse the uploaded image(s) and provide:
-
-**1. IMAGE QUALITY & TYPE** — modality, sequences, adequacy.
-**2. KEY FINDINGS** — meningeal enhancement, hydrocephalus, parenchymal lesions, infarcts, oedema, chest findings.
-**3. TBM ASSESSMENT** — do findings support TBM? Estimated Marais imaging score (0–6).
-**4. RED FLAGS** — any urgent findings requiring immediate intervention.
-**5. RECOMMENDATION** — next imaging step or follow-up interval.
-
-Be concise and clinically actionable. This is decision support for a treating physician.`;
-}
-
-async function callClaude(images, result, apiKey) {
-  try {
-    const content = [];
-    images.forEach((img, i) => {
-      const base64Data = img.base64.split(',')[1];
-      const mimeMatch = img.base64.match(/^data:(image\/[^;]+);base64,/);
-      const mediaType = (mimeMatch ? mimeMatch[1] : 'image/jpeg');
-      content.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } });
-      content.push({ type: 'text', text: `Image ${i + 1} (${img.label}): ${img.name}` });
-    });
-    content.push({ type: 'text', text: buildMRIPrompt(result) });
-
-    const response = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1500,
-        system: 'You are a consultant neuroradiologist specialising in CNS infections. Be concise, precise, and actionable. Format with **bold** section headers.',
-        messages: [{ role: 'user', content }]
-      })
-    });
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error?.message || 'Claude API error ' + response.status);
-    }
-    const data = await response.json();
-    renderMRIResponse(data.content?.[0]?.text || '');
-  } catch(err) {
-    document.getElementById('mri-loading').style.display = 'none';
-    document.getElementById('mri-error').style.display = 'block';
-    document.getElementById('mri-error-msg').textContent = err.message;
-    document.getElementById('mri-status-badge').textContent = '○ Unavailable';
-    document.getElementById('mri-status-badge').style.color = '#ef4444';
-  }
-}
-
-function renderMRIResponse(text) {
-  _lastMRIText = text;
-  const html = text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .split('\n\n')
-    .map(para => {
-      const trimmed = para.trim();
-      if (!trimmed) return '';
-      if (/^<strong>.*<\/strong>:?$/.test(trimmed) || /^\d+\.\s*<strong>/.test(trimmed))
-        return `<div class="ai-section-title">${trimmed.replace(/^\d+\.\s*/, '')}</div>`;
-      return `<div class="ai-section"><p>${trimmed.replace(/\n/g, '<br>')}</p></div>`;
-    }).join('');
-  document.getElementById('mri-result').innerHTML =
-    html + '<div class="ai-disclaimer" style="border-color:#ddd6fe;color:#6d28d9;background:#faf5ff;">Claude AI neuroradiology — not a substitute for a certified radiologist report.</div>';
-  document.getElementById('mri-loading').style.display = 'none';
-  document.getElementById('mri-result').style.display = 'block';
-  document.getElementById('mri-status-badge').textContent = '✓ Analysis Ready';
-  document.getElementById('mri-status-badge').style.cssText = 'font-size:11px;background:rgba(124,58,237,.15);color:#7c3aed;padding:4px 12px;border-radius:20px;font-weight:600;border:1px solid rgba(124,58,237,.3);';
 }
 
 function computeScore() {
