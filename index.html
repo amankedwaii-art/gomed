@@ -1554,7 +1554,7 @@
           <div class="card-header">
             <div>
               <div class="card-title">Cerebral Neuroimaging</div>
-              <div class="card-subtitle">CT/MRI brain findings</div>
+              <div class="card-subtitle">Brain imaging findings</div>
             </div>
             <div style="font-size:12px;background:#EBF7F9;color:var(--teal);padding:4px 12px;border-radius:20px;font-weight:600;">Step 3 of 5</div>
           </div>
@@ -1564,17 +1564,22 @@
             </div>
 
             <div style="margin-bottom:20px;">
-              <label class="field-label">Brain Imaging Performed?</label>
-              <div class="radio-group" id="rg-imaging">
-                <label class="radio-item" onclick="selectRadio('rg-imaging',this,'img-yes','yes'); showImagingFields(true)">
-                  <input type="radio" name="imaging" id="img-yes" value="yes" />
-                  <div class="item-label">Yes — CT and/or MRI performed</div>
+              <label class="field-label">Imaging Performed <span style="font-weight:400;color:var(--muted);font-size:11px;">(select all that were done)</span></label>
+              <div class="checkbox-group">
+                <label class="checkbox-item" onclick="toggleCheck(this); updateImagingModalities()">
+                  <input type="checkbox" name="imaging-modality" id="img-plain-ct" value="plain-ct" data-label="Plain CT brain" />
+                  <div><div class="item-label">Plain CT brain <span style="color:var(--muted);font-size:12px;">(non-contrast)</span></div></div>
                 </label>
-                <label class="radio-item" onclick="selectRadio('rg-imaging',this,'img-no','no'); showImagingFields(false)">
-                  <input type="radio" name="imaging" id="img-no" value="no" />
-                  <div class="item-label">No — imaging not available (score calculated without imaging)</div>
+                <label class="checkbox-item" onclick="toggleCheck(this); updateImagingModalities()">
+                  <input type="checkbox" name="imaging-modality" id="img-contrast-ct" value="contrast-ct" data-label="Contrast CT brain" />
+                  <div><div class="item-label">Contrast CT brain</div></div>
+                </label>
+                <label class="checkbox-item" onclick="toggleCheck(this); updateImagingModalities()">
+                  <input type="checkbox" name="imaging-modality" id="img-mri" value="mri" data-label="MRI brain" />
+                  <div><div class="item-label">MRI brain</div></div>
                 </label>
               </div>
+              <div style="font-size:12px;color:var(--muted);margin-top:8px;">Leave all unchecked if no imaging was performed — score calculated without imaging criteria.</div>
             </div>
 
             <div id="imaging-fields" class="hidden">
@@ -1594,98 +1599,68 @@
                 <div class="img-preview-grid" id="neuro-img-previews"></div>
               </div>
 
-              <div class="section-header">Imaging Findings <span style="font-weight:400;color:var(--muted);font-size:11px;text-transform:none;">— tick each finding in the modality where it was identified</span></div>
+              <div class="section-header">Imaging Findings <span style="font-weight:400;color:var(--muted);font-size:11px;text-transform:none;">— tick findings for each modality performed</span></div>
 
               <!-- Plain CT Brain -->
-              <div style="margin-bottom:16px;padding:14px;background:#f8fffe;border-radius:8px;border:1px solid #c8e6e6;">
+              <div id="plain-ct-section" class="hidden" style="margin-bottom:16px;padding:14px;background:#f8fffe;border-radius:8px;border:1px solid #c8e6e6;">
                 <div style="font-weight:600;color:var(--teal);margin-bottom:6px;font-size:13px;">Plain CT Brain (Non-contrast)</div>
-                <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">First-line modality — detects hydrocephalus, infarct, and pre-contrast basal changes.</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">First-line — detects hydrocephalus, infarct, and pre-contrast basal changes.</div>
                 <div class="checkbox-group">
                   <label class="checkbox-item" onclick="toggleCheck(this)">
                     <input type="checkbox" name="imaging-findings" data-finding="hydrocephalus" data-pts="1" data-label="Hydrocephalus (plain CT)" />
-                    <div>
-                      <div class="item-label">Hydrocephalus</div>
-                      <div class="item-pts">+1 pt</div>
-                    </div>
+                    <div><div class="item-label">Hydrocephalus</div><div class="item-pts">+1 pt</div></div>
                   </label>
                   <label class="checkbox-item" onclick="toggleCheck(this)">
                     <input type="checkbox" name="imaging-findings" data-finding="infarct" data-pts="1" data-label="Cerebral infarct (plain CT)" />
-                    <div>
-                      <div class="item-label">Cerebral infarct</div>
-                      <div class="item-pts">+1 pt</div>
-                    </div>
+                    <div><div class="item-label">Cerebral infarct</div><div class="item-pts">+1 pt</div></div>
                   </label>
                   <label class="checkbox-item" onclick="toggleCheck(this)">
                     <input type="checkbox" name="imaging-findings" data-finding="basal-hyperdensity" data-pts="2" data-label="Pre-contrast basal hyperdensity" />
-                    <div>
-                      <div class="item-label">Pre-contrast basal hyperdensity</div>
-                      <div class="item-pts">+2 pts</div>
-                    </div>
+                    <div><div class="item-label">Pre-contrast basal hyperdensity</div><div class="item-pts">+2 pts</div></div>
                   </label>
                 </div>
               </div>
 
               <!-- Contrast CT Brain -->
-              <div style="margin-bottom:16px;padding:14px;background:#f8fffe;border-radius:8px;border:1px solid #c8e6e6;">
+              <div id="contrast-ct-section" class="hidden" style="margin-bottom:16px;padding:14px;background:#f8fffe;border-radius:8px;border:1px solid #c8e6e6;">
                 <div style="font-weight:600;color:var(--teal);margin-bottom:6px;font-size:13px;">Contrast CT Brain</div>
-                <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Use when TBM is suspected or plain CT is inconclusive — best for basal enhancement and tuberculoma.</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Best for basal meningeal enhancement and tuberculoma detection.</div>
                 <div class="checkbox-group">
                   <label class="checkbox-item" onclick="toggleCheck(this)">
                     <input type="checkbox" name="imaging-findings" data-finding="basal-enhancement" data-pts="2" data-label="Basal meningeal enhancement (contrast CT)" />
-                    <div>
-                      <div class="item-label">Basal meningeal enhancement</div>
-                      <div class="item-pts">+2 pts</div>
-                    </div>
+                    <div><div class="item-label">Basal meningeal enhancement</div><div class="item-pts">+2 pts</div></div>
                   </label>
                   <label class="checkbox-item" onclick="toggleCheck(this)">
                     <input type="checkbox" name="imaging-findings" data-finding="tuberculoma" data-pts="2" data-label="Tuberculoma / ring-enhancing lesion (contrast CT)" />
-                    <div>
-                      <div class="item-label">Tuberculoma / ring-enhancing lesion</div>
-                      <div class="item-pts">+2 pts</div>
-                    </div>
+                    <div><div class="item-label">Tuberculoma / ring-enhancing lesion</div><div class="item-pts">+2 pts</div></div>
                   </label>
                   <label class="checkbox-item" onclick="toggleCheck(this)">
                     <input type="checkbox" name="imaging-findings" data-finding="hydrocephalus" data-pts="1" data-label="Hydrocephalus (contrast CT)" />
-                    <div>
-                      <div class="item-label">Hydrocephalus</div>
-                      <div class="item-pts">+1 pt</div>
-                    </div>
+                    <div><div class="item-label">Hydrocephalus</div><div class="item-pts">+1 pt</div></div>
                   </label>
                 </div>
               </div>
 
               <!-- MRI Brain -->
-              <div style="margin-bottom:16px;padding:14px;background:#f8fffe;border-radius:8px;border:1px solid #c8e6e6;">
+              <div id="mri-section" class="hidden" style="margin-bottom:16px;padding:14px;background:#f8fffe;border-radius:8px;border:1px solid #c8e6e6;">
                 <div style="font-weight:600;color:var(--teal);margin-bottom:6px;font-size:13px;">MRI Brain</div>
-                <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Most sensitive modality — use when CT is negative but TBM remains clinically suspected, or to assess complications (vasculitis, abscess, DWI infarct).</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Most sensitive — use when CT is negative or to assess complications (vasculitis, DWI infarct, abscess).</div>
                 <div class="checkbox-group">
                   <label class="checkbox-item" onclick="toggleCheck(this)">
                     <input type="checkbox" name="imaging-findings" data-finding="basal-enhancement" data-pts="2" data-label="Basal meningeal enhancement (MRI)" />
-                    <div>
-                      <div class="item-label">Basal meningeal enhancement (post-contrast)</div>
-                      <div class="item-pts">+2 pts</div>
-                    </div>
+                    <div><div class="item-label">Basal meningeal enhancement (post-contrast)</div><div class="item-pts">+2 pts</div></div>
                   </label>
                   <label class="checkbox-item" onclick="toggleCheck(this)">
                     <input type="checkbox" name="imaging-findings" data-finding="tuberculoma" data-pts="2" data-label="Tuberculoma (MRI)" />
-                    <div>
-                      <div class="item-label">Tuberculoma (ring-enhancing / nodular)</div>
-                      <div class="item-pts">+2 pts</div>
-                    </div>
+                    <div><div class="item-label">Tuberculoma (ring-enhancing / nodular)</div><div class="item-pts">+2 pts</div></div>
                   </label>
                   <label class="checkbox-item" onclick="toggleCheck(this)">
                     <input type="checkbox" name="imaging-findings" data-finding="hydrocephalus" data-pts="1" data-label="Hydrocephalus (MRI)" />
-                    <div>
-                      <div class="item-label">Hydrocephalus</div>
-                      <div class="item-pts">+1 pt</div>
-                    </div>
+                    <div><div class="item-label">Hydrocephalus</div><div class="item-pts">+1 pt</div></div>
                   </label>
                   <label class="checkbox-item" onclick="toggleCheck(this)">
                     <input type="checkbox" name="imaging-findings" data-finding="infarct" data-pts="1" data-label="Cerebral infarct / DWI restriction (MRI)" />
-                    <div>
-                      <div class="item-label">Cerebral infarct (including DWI restriction)</div>
-                      <div class="item-pts">+1 pt</div>
-                    </div>
+                    <div><div class="item-label">Cerebral infarct (including DWI restriction)</div><div class="item-pts">+1 pt</div></div>
                   </label>
                 </div>
               </div>
@@ -2191,6 +2166,9 @@ function resetWizard() {
   document.querySelectorAll('.checkbox-item, .radio-item').forEach(el => el.classList.remove('checked','selected'));
   document.getElementById('lp-fields').classList.add('hidden');
   document.getElementById('imaging-fields').classList.add('hidden');
+  document.getElementById('plain-ct-section').classList.add('hidden');
+  document.getElementById('contrast-ct-section').classList.add('hidden');
+  document.getElementById('mri-section').classList.add('hidden');
   // Auto-generate patient ID
   document.getElementById('f-name').value = generatePatientId();
 }
@@ -2248,6 +2226,16 @@ function toggleLPFields(show) {
 function showImagingFields(show) {
   document.getElementById('imaging-fields').classList.toggle('hidden', !show);
   scores.imaging.available = show;
+}
+
+function updateImagingModalities() {
+  const vals = [...document.querySelectorAll('input[name="imaging-modality"]:checked')].map(el => el.value);
+  const hasAny = vals.length > 0;
+  document.getElementById('imaging-fields').classList.toggle('hidden', !hasAny);
+  document.getElementById('plain-ct-section').classList.toggle('hidden', !vals.includes('plain-ct'));
+  document.getElementById('contrast-ct-section').classList.toggle('hidden', !vals.includes('contrast-ct'));
+  document.getElementById('mri-section').classList.toggle('hidden', !vals.includes('mri'));
+  scores.imaging.available = hasAny;
 }
 
 function updateCSFAppearance() {
@@ -2722,7 +2710,7 @@ function computeScore() {
   const isDefinite = microChecked.length > 0;
 
   // ─ Imaging ─
-  const hasImaging = document.querySelector('input[name="imaging"]:checked')?.value === 'yes';
+  const hasImaging = document.querySelectorAll('input[name="imaging-modality"]:checked').length > 0;
   let imagingScore = 0;
   if (hasImaging) {
     // Deduplicate by data-finding so the same finding checked across modalities only counts once
